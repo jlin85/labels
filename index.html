@@ -2,76 +2,170 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Label Printer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Label Studio</title>
+<meta name="theme-color" content="#2563eb">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;700&family=Bebas+Neue&family=Caveat:wght@400;700&family=Comfortaa:wght@400;700&family=Fredoka:wght@400;700&family=Lobster&family=Pacifico&family=Patrick+Hand&family=Permanent+Marker&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
 <style>
 :root{
-  --bg:#f5f6f8; --card:#ffffff; --fg:#1b1f24; --muted:#5f6b7a; --line:#dde2e8;
-  --accent:#2563eb; --accent-fg:#ffffff; --ok:#15803d; --warn:#b45309; --err:#b91c1c;
-  --paper:#ffffff; --ink:#111111; --field:#ffffff;
+  --bg:#f4f5f7; --card:#ffffff; --fg:#1b1f24; --muted:#5f6b7a; --line:#dde2e8;
+  --accent:#2563eb; --accent-fg:#ffffff; --accent-soft:#e8efff;
+  --ok:#15803d; --warn:#b45309; --err:#b91c1c; --field:#ffffff; --sel:#2563eb;
 }
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#0f1216; --card:#171b21; --fg:#e6e9ee; --muted:#97a3b1; --line:#2a313a;
-    --accent:#3b82f6; --ok:#4ade80; --warn:#fbbf24; --err:#f87171; --field:#0f1216;
+    --accent:#3b82f6; --accent-soft:#1c2a44; --ok:#4ade80; --warn:#fbbf24; --err:#f87171; --field:#0f1216; --sel:#60a5fa;
   }
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header{padding:16px;border-bottom:1px solid var(--line);background:var(--card)}
-header h1{margin:0;font-size:18px}
-header p{margin:2px 0 0;color:var(--muted);font-size:13px}
-main{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-@media (max-width:800px){main{grid-template-columns:minmax(0,1fr)}}
-section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
-section h2{margin:0 0 10px;font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:10px}
-.row > label{flex:1 1 120px}
-label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
-label.inline{flex-direction:row;align-items:center;gap:6px;flex:0 0 auto;color:var(--fg)}
-input,select,textarea,button{font:inherit;color:var(--fg)}
-input[type=number],input[type=text],select,textarea{background:var(--field);border:1px solid var(--line);border-radius:6px;padding:7px 8px;width:100%}
-textarea{min-height:90px;resize:vertical}
-input[type=range]{width:100%}
-button{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:9px 14px;cursor:pointer}
-button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:600}
-button:disabled{opacity:.5;cursor:not-allowed}
-.tabs{display:flex;gap:6px;margin-bottom:10px}
-.tabs button[aria-selected=true]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
-.status{display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:10px}
-.dot{width:10px;height:10px;border-radius:50%;background:var(--muted)}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
+button,input,select,textarea{font:inherit;color:var(--fg)}
+.top{position:sticky;top:0;z-index:20;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+.brand h1{margin:0;font-size:18px}
+.brand span{color:var(--muted);font-size:12px}
+.conn{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--muted);flex:none}
 .dot.on{background:var(--ok)}
-.banner{border:1px solid var(--warn);color:var(--warn);border-radius:8px;padding:10px;margin-bottom:10px;font-size:13px;display:none}
-.preview-wrap{background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/16px 16px;border-radius:8px;padding:16px;display:flex;justify-content:center;align-items:center;min-height:220px;overflow:auto}
-#preview{background:var(--paper);image-rendering:pixelated;box-shadow:0 1px 4px rgba(0,0,0,.25);border-radius:3px;max-width:100%}
-.meta{color:var(--muted);font-size:12px;margin-top:6px;text-align:center}
-progress{width:100%;height:10px}
-#log{background:var(--field);border:1px solid var(--line);border-radius:6px;font:12px/1.4 ui-monospace,Consolas,monospace;height:140px;overflow:auto;padding:6px;white-space:pre-wrap;margin:0}
-#log .warn{color:var(--warn)} #log .err{color:var(--err)} #log .ok{color:var(--ok)}
+.dot.busy{background:var(--warn)}
+.banner{margin:12px 16px 0;border:1px solid var(--warn);color:var(--warn);border-radius:8px;padding:10px;font-size:13px}
+.layout{max-width:1280px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr)}
+@media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr);padding:12px 12px 90px}}
+.col{display:grid;gap:16px;align-content:start;min-width:0}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+section h2{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:10px}
+.row > label:not(.inline){flex:1 1 90px;min-width:0}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+label.inline{flex-direction:row;align-items:center;gap:6px;color:var(--fg);flex:0 0 auto}
+input[type=number],input[type=text],select,textarea{background:var(--field);border:1px solid var(--line);border-radius:7px;padding:7px 8px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:64px}
+input[type=range]{width:100%}
+button{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:8px 12px;cursor:pointer;white-space:nowrap}
+button:hover:not(:disabled){border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:600}
+button.danger{color:var(--err)}
+button.small{padding:5px 9px;font-size:13px}
+button:disabled{opacity:.45;cursor:not-allowed}
 .hidden{display:none!important}
-details summary{cursor:pointer;color:var(--muted);font-size:13px}
-.full{grid-column:1/-1}
+.hint{color:var(--muted);font-size:13px;margin:0}
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+.toolbar .sep{flex:1}
+.tool{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 10px;font-size:12px;min-width:58px}
+.tool b{font-size:18px;line-height:1;font-weight:600}
+.picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:4px;margin-bottom:10px;padding:8px;border:1px solid var(--line);border-radius:8px;max-height:200px;overflow:auto}
+.picker button{font-size:22px;padding:4px;line-height:1.2}
+.picker .lbl{grid-column:1/-1;font-size:12px;color:var(--muted);margin-top:4px}
+.canvas-wrap{background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/16px 16px;border-radius:10px;padding:16px;display:flex;justify-content:center;align-items:center;min-height:200px;overflow:hidden}
+#view{display:block;touch-action:none;box-shadow:0 1px 6px rgba(0,0,0,.3);border-radius:2px;cursor:default;background:#fff}
+.meta{color:var(--muted);font-size:12px;margin-top:8px;text-align:center}
+.chips{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0 10px}
+.chip{font-size:12px;padding:3px 8px;border-radius:999px;background:var(--accent-soft);border-color:transparent}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.roll{border:1px solid var(--line);border-radius:8px;padding:10px;font-size:14px;margin-top:10px}
+.roll b{font-weight:600}
+.roll .new{color:var(--warn);font-weight:600}
+.kv{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.kv span b{color:var(--fg);font-weight:600}
+progress{width:100%;height:10px}
+#log{background:var(--field);border:1px solid var(--line);border-radius:7px;font:12px/1.4 ui-monospace,Consolas,monospace;height:140px;overflow:auto;padding:6px;white-space:pre-wrap;margin:0}
+#log .warn{color:var(--warn)} #log .err{color:var(--err)} #log .ok{color:var(--ok)}
+details>summary{cursor:pointer;color:var(--muted);font-size:13px;margin-bottom:6px}
+.list{display:grid;gap:6px;margin-top:8px}
+.list .item{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:6px 8px}
+.fill{display:grid;gap:10px}
+.fill .var{border:1px solid var(--line);border-radius:8px;padding:10px}
+.fill .var-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.fill .tag{font:600 13px ui-monospace,Consolas,monospace;color:var(--accent);min-width:56px}
+.fill .var-head input[type=text]{flex:1 1 160px;width:auto;font-size:16px;padding:9px 10px}
+.fill textarea{margin-top:8px;font-size:16px}
+.nav{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:8px;flex-wrap:wrap}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg);width:94vw;max-width:960px;padding:14px}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;max-height:68vh;overflow:auto;margin:10px 0}
+.thumbs figure{margin:0;text-align:center;font-size:12px;color:var(--muted)}
+.thumbs canvas{width:100%;height:auto;background:#fff;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,.3);image-rendering:pixelated;display:block;margin-bottom:4px}
+.mobile-bar{display:none}
+@media (max-width:900px){
+  .mobile-bar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;gap:10px;align-items:center;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--line)}
+  .mobile-bar span{flex:1;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mobile-bar button{padding:10px 22px}
+}
 </style>
 </head>
 <body>
-<header>
-  <h1>Label Printer</h1>
-  <p>Prints to a NIIMBOT B21 (and similar) directly over Bluetooth. No app, no account, no cloud, no VPN.</p>
-</header>
 
-<main>
-  <!-- LEFT: printer + label + content -->
-  <div style="display:grid;gap:16px;align-content:start">
+<header class="top">
+  <div class="brand"><h1>Label Studio</h1><span>Direct Bluetooth printing for NIIMBOT B21. No app, no cloud, no VPN.</span></div>
+  <div class="conn">
+    <span id="dot" class="dot"></span><span id="statusText">Not connected</span>
+    <button id="btnConnect" class="primary">Connect printer</button>
+    <button id="btnDisconnect" class="hidden">Disconnect</button>
+  </div>
+</header>
+<div id="noBt" class="banner hidden">This browser can't use Bluetooth. Open this page in <b>Chrome</b> or <b>Edge</b> (Android / Windows / Mac). On iPhone use the free <b>Bluefy</b> browser.</div>
+<div id="noSecure" class="banner hidden">Bluetooth needs a secure page. Open this from its <b>https://</b> link (GitHub Pages).</div>
+
+<main class="layout">
+  <!-- ===== Editor column ===== -->
+  <div class="col">
     <section>
-      <h2>Printer</h2>
-      <div id="noBt" class="banner">This browser can't use Bluetooth. Open this page in <b>Chrome</b> or <b>Edge</b> (Windows / Android / Mac). On iPhone, use the free <b>Bluefy</b> browser.</div>
-      <div id="noSecure" class="banner">Bluetooth needs a secure page. Open this file from <b>https://</b> (e.g. GitHub Pages) instead.</div>
-      <div class="status"><span id="dot" class="dot"></span><span id="statusText">Not connected</span></div>
-      <div class="row">
-        <button id="btnConnect" class="primary">Connect printer</button>
-        <button id="btnDisconnect" disabled>Disconnect</button>
+      <div class="toolbar">
+        <button class="tool" data-add="text"><b>T</b>Text</button>
+        <button class="tool" id="btnEmoji"><b>☺</b>Emoji</button>
+        <button class="tool" id="btnImage"><b>🖼</b>Image</button>
+        <button class="tool" data-add="qr"><b>▣</b>QR</button>
+        <button class="tool" data-add="barcode"><b>║</b>Barcode</button>
+        <button class="tool" data-add="rect"><b>▢</b>Box</button>
+        <button class="tool" data-add="ellipse"><b>◯</b>Circle</button>
+        <button class="tool" data-add="line"><b>—</b>Line</button>
+        <span class="sep"></span>
+        <button id="btnUndo" class="small" title="Undo (Ctrl+Z)">↶ Undo</button>
+        <button id="btnRedo" class="small" title="Redo (Ctrl+Y)">↷ Redo</button>
+      </div>
+      <div id="emojiPicker" class="picker hidden"></div>
+      <div id="canvasWrap" class="canvas-wrap"><canvas id="view" width="384" height="240"></canvas></div>
+      <div id="meta" class="meta"></div>
+      <div id="previewNav" class="nav hidden">
+        <button id="navPrev" class="small" aria-label="Previous label">‹</button>
+        <span id="navPos" class="hint"></span>
+        <button id="navNext" class="small" aria-label="Next label">›</button>
+        <button id="btnPreviewAll" class="small">Preview all</button>
+        <button id="btnPrintOne" class="small" disabled>Print just this one</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Names, blanks &amp; numbering</h2>
+      <div id="fillIn" class="fill"></div>
+    </section>
+
+    <section>
+      <h2 id="propsTitle">Edit</h2>
+      <div id="props"></div>
+    </section>
+  </div>
+
+  <!-- ===== Side column ===== -->
+  <div class="col">
+    <section>
+      <h2>Printer &amp; sticker roll</h2>
+      <div id="printerInfo" class="kv"><span>Not connected</span></div>
+      <div id="rollInfo"></div>
+      <div class="row" style="margin-top:10px;margin-bottom:0">
+        <label class="inline"><input type="checkbox" id="autoDetect"> Auto-detect sticker rolls</label>
         <label class="inline"><input type="checkbox" id="showAll"> Show all Bluetooth devices</label>
       </div>
+      <details style="margin-top:8px">
+        <summary>My sticker library</summary>
+        <p class="hint">Rolls are recognized by their chip. Each roll type is remembered here after you enter its size once.</p>
+        <div id="rollList" class="list"></div>
+      </details>
     </section>
 
     <section>
@@ -79,134 +173,120 @@ details summary{cursor:pointer;color:var(--muted);font-size:13px}
       <div class="row">
         <label>Size preset
           <select id="preset">
+            <option value="">Custom</option>
             <option value="50x30">50 × 30 mm</option>
             <option value="50x20">50 × 20 mm</option>
-            <option value="40x30">40 × 30 mm</option>
-            <option value="40x20">40 × 20 mm</option>
-            <option value="30x20">30 × 20 mm</option>
+            <option value="50x40">50 × 40 mm</option>
             <option value="50x50">50 × 50 mm</option>
+            <option value="50x70">50 × 70 mm</option>
             <option value="50x80">50 × 80 mm</option>
-            <option value="custom">Custom</option>
+            <option value="40x30">40 × 30 mm</option>
+            <option value="40x40">40 × 40 mm</option>
+            <option value="40x60">40 × 60 mm</option>
+            <option value="30x20">30 × 20 mm</option>
+            <option value="30x30">30 × 30 mm</option>
+            <option value="25x25">25 × 25 mm</option>
           </select>
         </label>
-        <label>Width (mm)<input type="number" id="wmm" min="5" max="60" step="1" value="50"></label>
-        <label>Height (mm)<input type="number" id="hmm" min="5" max="200" step="1" value="30"></label>
+        <label>Width (mm)<input type="number" id="lblW" min="5" max="60" step="1"></label>
+        <label>Height (mm)<input type="number" id="lblH" min="5" max="200" step="1"></label>
       </div>
-      <div class="row">
-        <label>Rotate design
-          <select id="rotate">
-            <option value="0">0°</option>
-            <option value="90">90°</option>
-            <option value="180">180°</option>
-            <option value="270">270°</option>
+      <div class="row" style="margin-bottom:0">
+        <label>Shape (guide only)
+          <select id="lblShape">
+            <option value="rect">Rectangle</option>
+            <option value="rounded">Rounded</option>
+            <option value="circle">Round / oval</option>
           </select>
         </label>
-        <label>Margin (mm)<input type="number" id="margin" min="0" max="10" step="0.5" value="2"></label>
+        <label>Orientation
+          <select id="lblRot">
+            <option value="0">Normal</option>
+            <option value="90">Rotated 90°</option>
+            <option value="180">Upside down</option>
+            <option value="270">Rotated 270°</option>
+          </select>
+        </label>
       </div>
-    </section>
-
-    <section>
-      <h2>Content</h2>
-      <div class="tabs" role="tablist">
-        <button id="tabText" role="tab" aria-selected="true">Text</button>
-        <button id="tabImage" role="tab" aria-selected="false">Image</button>
-      </div>
-
-      <div id="paneText">
-        <label>Text (one line per row)<textarea id="text">Hello from
-the B21!</textarea></label>
-        <div class="row" style="margin-top:10px">
-          <label>Font
-            <select id="font">
-              <option value="system-ui, 'Segoe UI', Roboto, Arial, sans-serif">Sans</option>
-              <option value="Georgia, 'Times New Roman', serif">Serif</option>
-              <option value="Consolas, 'Courier New', monospace">Mono</option>
-              <option value="Impact, 'Arial Black', sans-serif">Heavy</option>
-            </select>
-          </label>
-          <label>Align
-            <select id="align">
-              <option value="center">Center</option>
-              <option value="left">Left</option>
-              <option value="right">Right</option>
-            </select>
-          </label>
-          <label>Font size (px)<input type="number" id="fontSize" min="6" max="400" value="40"></label>
-        </div>
-        <div class="row">
-          <label class="inline"><input type="checkbox" id="autoFit" checked> Auto-fit text</label>
-          <label class="inline"><input type="checkbox" id="bold" checked> Bold</label>
-          <label class="inline"><input type="checkbox" id="border"> Border</label>
-        </div>
-      </div>
-
-      <div id="paneImage" class="hidden">
-        <label>Image file (PNG, JPG, SVG…)<input type="file" id="imageFile" accept="image/*"></label>
-        <div class="row" style="margin-top:10px">
-          <label>Fit
-            <select id="fit">
-              <option value="contain">Fit inside</option>
-              <option value="cover">Fill (crop)</option>
-              <option value="stretch">Stretch</option>
-            </select>
-          </label>
-          <label class="inline"><input type="checkbox" id="dither"> Dither (for photos)</label>
-        </div>
-      </div>
-
-      <div class="row" style="margin-top:6px">
-        <label>Darkness threshold <input type="range" id="threshold" min="1" max="254" value="128"></label>
-        <label class="inline"><input type="checkbox" id="invert"> Invert</label>
-      </div>
-    </section>
-  </div>
-
-  <!-- RIGHT: preview + print -->
-  <div style="display:grid;gap:16px;align-content:start">
-    <section>
-      <h2>Preview (exact printed pixels)</h2>
-      <div class="preview-wrap"><canvas id="preview" width="384" height="240"></canvas></div>
-      <div id="meta" class="meta"></div>
     </section>
 
     <section>
       <h2>Print</h2>
       <div class="row">
-        <label>Copies<input type="number" id="copies" min="1" max="99" value="1"></label>
-        <label>Density
+        <label>Copies<input type="number" id="copies" min="1" max="999" value="1"></label>
+        <label>Darkness
           <select id="density">
-            <option value="1">1 (lightest)</option>
-            <option value="2">2</option>
-            <option value="3" selected>3 (default)</option>
-            <option value="4">4</option>
-            <option value="5">5 (darkest)</option>
+            <option value="1">1 · lightest</option><option value="2">2</option><option value="3">3 · normal</option>
+            <option value="4">4</option><option value="5">5 · darkest</option>
           </select>
         </label>
-        <label>Paper type
+        <label>Paper
           <select id="labelType">
-            <option value="1">Labels with gaps</option>
-            <option value="2">Black mark</option>
-            <option value="3">Continuous</option>
+            <option value="1">Gap labels</option><option value="2">Black mark</option><option value="3">Continuous</option>
+            <option value="4">Perforated</option><option value="5">Transparent</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label>Date style
+          <select id="dateFormat">
+            <option value="locale">System default</option>
+            <option value="short">Nov 4</option>
+            <option value="long">Nov 4, 2026</option>
+            <option value="iso">2026-11-04</option>
+            <option value="dmy">04/11/2026</option>
+            <option value="mdy">11/04/2026</option>
           </select>
         </label>
       </div>
       <div class="row">
         <button id="btnPrint" class="primary" disabled>Print</button>
+        <button id="btnCancel" class="hidden">Cancel</button>
+        <span id="printStatus" class="hint"></span>
       </div>
-      <progress id="progress" value="0" max="1" class="hidden"></progress>
-      <details style="margin-top:10px">
+      <progress id="progress" class="hidden" value="0" max="1"></progress>
+      <details style="margin-top:8px">
         <summary>Advanced / troubleshooting</summary>
-        <div class="row" style="margin-top:10px">
+        <div class="row">
           <label>Protocol
             <select id="proto">
-              <option value="v1">V1 (older B21 firmware)</option>
-              <option value="v2">V2 (newer B21 / B1 firmware)</option>
+              <option value="v1">V1 (older firmware)</option>
+              <option value="v2">V2 (newer firmware)</option>
             </select>
           </label>
           <label>Row delay (ms)<input type="number" id="rowDelay" min="0" max="100" value="10"></label>
         </div>
-        <p class="meta" style="text-align:left">If the printer feeds but prints nothing, or does nothing at all, switch Protocol and try again. If prints come out garbled or partial, raise the row delay.</p>
+        <p class="hint">Nothing prints? Switch Protocol. Garbled or partial print? Raise the row delay. Upside down? Change Orientation.</p>
       </details>
+    </section>
+
+    <section>
+      <h2>Designs</h2>
+      <div class="row">
+        <label>Starter or saved design
+          <select id="tplSelect"></select>
+        </label>
+        <button id="btnTplLoad">Open</button>
+      </div>
+      <div class="actions">
+        <button id="btnNew" class="small">New blank</button>
+        <button id="btnTplSave" class="small">Save as…</button>
+        <button id="btnTplDelete" class="small danger">Delete saved</button>
+        <button id="btnExport" class="small">Export file</button>
+        <button id="btnImport" class="small">Import file</button>
+      </div>
+      <p class="hint" style="margin-top:8px">Export/import lets you share designs between phones and computers.</p>
+    </section>
+
+    <section>
+      <h2>Spreadsheet import</h2>
+      <p class="hint">For lists with several columns. Paste rows from Excel or Google Sheets, or load a CSV, with column names in the first row. Put <b>{ColumnName}</b> in any text, QR code or barcode, and one label prints per row. For a plain list of names, use <b>Names, blanks &amp; numbering</b> instead.</p>
+      <textarea id="batchText" rows="4" placeholder="Name&#9;Date&#10;Strawberry jam&#9;Nov 2026&#10;Lemon curd&#9;Dec 2026" style="margin-top:8px"></textarea>
+      <div class="row" style="margin-top:8px;margin-bottom:0;align-items:center">
+        <button id="btnBatchFile" class="small">Load CSV file</button>
+        <button id="btnBatchClear" class="small">Clear</button>
+        <span id="batchInfo" class="hint"></span>
+      </div>
     </section>
 
     <section>
@@ -216,14 +296,1015 @@ the B21!</textarea></label>
   </div>
 </main>
 
+<dialog id="previewDlg">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b id="previewTitle">All labels</b><button id="previewClose" class="small">Close</button></div>
+  <div id="thumbs" class="thumbs"></div>
+  <div class="actions" style="justify-content:flex-end"><button id="previewPrint" class="primary">Print all of these</button></div>
+</dialog>
+
+<div class="mobile-bar">
+  <span id="mbStatus">Not connected</span>
+  <button id="btnPrint2" class="primary" disabled>Print</button>
+</div>
+
+<input type="file" id="imgInput" accept="image/*" hidden>
+<input type="file" id="tplInput" accept=".json,application/json" hidden>
+<input type="file" id="csvInput" accept=".csv,.tsv,.txt,text/csv" hidden>
+
 <script>
 "use strict";
-/* ============================================================
-   Constants
-   ============================================================ */
-const DPMM = 8;          // 203 dpi ≈ 8 dots per mm
-const HEAD_PX = 384;     // B21 printhead width in dots (48 mm)
-// Known NIIMBOT BLE services; the "e781…" one is used by the B21/B1/D11/D110.
+/* =====================================================================
+   Basics
+   ===================================================================== */
+const DPMM = 8;          // 203 dpi ≈ 8 dots/mm
+const HEAD_PX = 384;     // B21 printhead = 48 mm
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const hex = (a) => Array.from(a, (b) => b.toString(16).padStart(2, "0")).join(" ");
+const u16 = (n) => [(n >> 8) & 0xff, n & 0xff];
+const uid = () => Math.random().toString(36).slice(2, 10);
+const clone = (o) => JSON.parse(JSON.stringify(o));
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (_) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (_) { return false; } },
+};
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2), v);
+    else if (k === "class") el.className = v;
+    else if (v === true) el.setAttribute(k, "");
+    else if (v !== false && v != null) el.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false) el.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  return el;
+}
+function log(msg, cls) {
+  const el = $("log");
+  el.appendChild(h("div", { class: cls || "" }, `${new Date().toLocaleTimeString()}  ${msg}`));
+  el.scrollTop = el.scrollHeight;
+}
+
+/* =====================================================================
+   Settings & state
+   ===================================================================== */
+const S = Object.assign({
+  copies: 1, density: 3, labelType: 1, counterStart: 1, dateFormat: "locale",
+  proto: "v1", rowDelay: 10, autoDetect: true, showAll: false,
+  fields: {}, continueCount: false,
+}, store.get("ls.settings", {}));
+if (!S.fields || typeof S.fields !== "object") S.fields = {};
+const saveSettings = () => store.set("ls.settings", S);
+
+let rolls = store.get("ls.rolls", {});          // barcode -> {name,w,h,shape,type}
+let templates = store.get("ls.templates", {});  // name -> doc
+
+const FONTS = [
+  { name: "Sans", css: 'system-ui, "Segoe UI", Roboto, Arial, sans-serif' },
+  { name: "Serif", css: 'Georgia, "Times New Roman", serif' },
+  { name: "Mono", css: 'Consolas, "Courier New", monospace' },
+  { name: "Heavy", css: 'Impact, "Arial Black", sans-serif' },
+  { name: "Fredoka", css: '"Fredoka", sans-serif', web: true },
+  { name: "Baloo", css: '"Baloo 2", sans-serif', web: true },
+  { name: "Comfortaa", css: '"Comfortaa", sans-serif', web: true },
+  { name: "Pacifico", css: '"Pacifico", cursive', web: true, single: true },
+  { name: "Lobster", css: '"Lobster", cursive', web: true, single: true },
+  { name: "Caveat", css: '"Caveat", cursive', web: true },
+  { name: "Patrick Hand", css: '"Patrick Hand", cursive', web: true, single: true },
+  { name: "Marker", css: '"Permanent Marker", cursive', web: true, single: true },
+  { name: "Bebas", css: '"Bebas Neue", sans-serif', web: true, single: true },
+];
+const fontBy = (n) => FONTS.find((f) => f.name === n) || FONTS[0];
+const fontRequested = new Set();
+function ensureFont(f, weight) {
+  if (!f.web || !document.fonts) return;
+  const key = f.name + weight;
+  if (fontRequested.has(key)) return;
+  fontRequested.add(key);
+  document.fonts.load(`${f.single ? 400 : weight} 32px ${f.css.split(",")[0]}`).then(scheduleRender, () => {});
+}
+
+const DEFAULTS = {
+  text: { text: "Text", font: "Sans", size: 32, autoFit: true, bold: true, italic: false, align: "center", valign: "middle", lineHeight: 1.15, invert: false, dither: false },
+  qr: { value: "https://example.com", ecc: "M" },
+  barcode: { value: "123456789012", format: "CODE128", showText: true },
+  image: { src: "", fit: "contain", threshold: 128, dither: true, invert: false },
+  rect: { stroke: 3, fill: false, radius: 0, style: "solid" },
+  ellipse: { stroke: 3, fill: false, style: "solid" },
+  line: { stroke: 3, style: "solid" },
+};
+const TYPE_NAMES = { text: "Text", qr: "QR code", barcode: "Barcode", image: "Image", rect: "Box", ellipse: "Circle", line: "Line" };
+
+let doc = store.get("ls.doc", null) || { label: { w: 50, h: 30, shape: "rect", rotate: 0 }, objects: [] };
+let selId = null;
+let batch = null;      // {headers, rows}
+let previewIdx = 0;
+let viewScale = 1;
+let guides = [];
+
+/* =====================================================================
+   Label geometry
+   ===================================================================== */
+function printDims(label = doc.label) {
+  return { W: Math.min(Math.round(label.w * DPMM), HEAD_PX), H: Math.round(label.h * DPMM), capped: Math.round(label.w * DPMM) > HEAD_PX };
+}
+function designDims(label = doc.label) {
+  const { W, H } = printDims(label);
+  return label.rotate % 180 ? { dw: H, dh: W } : { dw: W, dh: H };
+}
+function setLabel(patch) {
+  const before = designDims();
+  doc.label = Object.assign({}, doc.label, patch);
+  const after = designDims();
+  const sx = after.dw / before.dw, sy = after.dh / before.dh;
+  if (sx !== 1 || sy !== 1) {
+    for (const o of doc.objects) {
+      o.x = Math.round(o.x * sx); o.y = Math.round(o.y * sy);
+      o.w = Math.max(4, Math.round(o.w * sx)); o.h = Math.max(4, Math.round(o.h * sy));
+      if (o.type === "qr") { const s = Math.min(o.w, o.h); o.x += Math.round((o.w - s) / 2); o.y += Math.round((o.h - s) / 2); o.w = o.h = s; }
+    }
+  }
+  syncLabelInputs();
+  pushHistory();
+  buildProps();
+  scheduleRender();
+}
+
+/* =====================================================================
+   Variables: {date} {date+7} {time} {n} {n:3} {Column}
+   ===================================================================== */
+function fmtDate(d) {
+  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), dd = String(d.getDate()).padStart(2, "0");
+  switch (S.dateFormat) {
+    case "iso": return `${y}-${m}-${dd}`;
+    case "dmy": return `${dd}/${m}/${y}`;
+    case "mdy": return `${m}/${dd}/${y}`;
+    case "short": return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    case "long": return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    default: return d.toLocaleDateString();
+  }
+}
+function resolveVars(s, vars) {
+  return String(s ?? "").replace(/\{([^{}]+)\}/g, (m, raw) => {
+    const k = raw.trim();
+    let mm;
+    if ((mm = k.match(/^date\s*([+-]\s*\d+)?$/i))) { const d = new Date(); d.setDate(d.getDate() + (parseInt((mm[1] || "0").replace(/\s/g, ""), 10) || 0)); return fmtDate(d); }
+    if (/^time$/i.test(k)) return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    if ((mm = k.match(/^n(?::(\d+))?$/i))) { const v = String(vars.n ?? 1); return mm[1] ? v.padStart(+mm[1], "0") : v; }
+    if (/^total$/i.test(k)) return String(vars.total ?? vars.n ?? 1);
+    if (/^letter$/i.test(k)) return toLetters(vars.n ?? 1);
+    if (vars.row && Object.prototype.hasOwnProperty.call(vars.row, k)) return vars.row[k];
+    return m;
+  });
+}
+function toLetters(n) { let s = ""; n = Math.max(1, Math.floor(n)); while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); } return s; }
+const objStrings = () => doc.objects.map((o) => (o.type === "text" ? o.text : o.type === "qr" || o.type === "barcode" ? o.value : "") || "");
+const usesCounter = () => objStrings().some((s) => /\{\s*(n(:\d+)?|letter)\s*\}/i.test(s));
+const usesNumbers = () => objStrings().some((s) => /\{\s*(n(:\d+)?|letter|total)\s*\}/i.test(s));
+const BUILTIN = /^(date\s*([+-]\s*\d+)?|time|n(:\d+)?|total|letter)$/i;
+
+// Custom blanks such as {name}: every {word} in the design that isn't built in
+function customVars() {
+  const set = new Set();
+  for (const s of objStrings()) for (const m of s.matchAll(/\{([^{}]+)\}/g)) {
+    const k = m[1].trim();
+    if (k && !BUILTIN.test(k) && !(batch && batch.headers.includes(k))) set.add(k);
+  }
+  return [...set];
+}
+function fieldOf(k) { if (!S.fields[k]) S.fields[k] = { value: "", list: "", useList: false }; return S.fields[k]; }
+const listOf = (f) => (f.useList ? String(f.list || "").split("\n").map((x) => x.trim()).filter(Boolean) : []);
+
+// One row per label "set": combines typed values, pasted lists and spreadsheet rows
+function jobRows() {
+  const single = {}, lists = {};
+  for (const k of customVars()) {
+    const f = fieldOf(k), l = listOf(f);
+    if (l.length) lists[k] = l; else if (f.value) single[k] = f.value;
+  }
+  const L = Math.max(1, batch ? batch.rows.length : 0, ...Object.values(lists).map((l) => l.length));
+  const rows = [];
+  for (let i = 0; i < L; i++) {
+    const r = Object.assign({}, single);
+    for (const k in lists) r[k] = lists[k][i] ?? "";
+    if (batch && batch.rows[i]) Object.assign(r, batch.rows[i]);
+    rows.push(r);
+  }
+  return rows;
+}
+// Every distinct label in the job, with its variables and how many copies of it
+function jobLabels() {
+  const rows = jobRows();
+  const copies = Math.max(1, Math.min(999, +S.copies || 1));
+  const numbered = usesCounter();
+  const start = +S.counterStart || 0;
+  const last = start + rows.length * copies - 1;
+  const out = []; let n = start;
+  for (const row of rows) {
+    if (numbered) for (let k = 0; k < copies; k++) out.push({ vars: { n: n++, total: last, row }, qty: 1 });
+    else out.push({ vars: { n: start, total: last, row }, qty: copies });
+  }
+  return out;
+}
+function previewVars() {
+  const L = jobLabels();
+  previewIdx = Math.max(0, Math.min(previewIdx, L.length - 1));
+  return L[previewIdx].vars;
+}
+
+/* =====================================================================
+   Rendering (design canvas -> 1-bit)
+   ===================================================================== */
+function mkCanvas(w, h) { const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; }
+
+// Convert a canvas to a 1-bit canvas (black opaque, white transparent unless opaqueWhite)
+function rasterize(src, { threshold = 128, dither = false, invert = false, opaqueWhite = false } = {}) {
+  const w = src.width, hh = src.height;
+  const flat = mkCanvas(w, hh), fctx = flat.getContext("2d");
+  fctx.fillStyle = "#fff"; fctx.fillRect(0, 0, w, hh); fctx.drawImage(src, 0, 0);
+  const px = fctx.getImageData(0, 0, w, hh).data;
+  const g = new Float32Array(w * hh);
+  for (let i = 0; i < w * hh; i++) g[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
+  const bits = new Uint8Array(w * hh);
+  if (dither) {
+    for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x, old = g[i], nv = old < threshold ? 0 : 255, err = old - nv;
+      bits[i] = nv === 0 ? 1 : 0;
+      if (x + 1 < w) g[i + 1] += err * 7 / 16;
+      if (y + 1 < hh) { if (x > 0) g[i + w - 1] += err * 3 / 16; g[i + w] += err * 5 / 16; if (x + 1 < w) g[i + w + 1] += err / 16; }
+    }
+  } else for (let i = 0; i < w * hh; i++) bits[i] = g[i] < threshold ? 1 : 0;
+  if (invert) for (let i = 0; i < bits.length; i++) bits[i] ^= 1;
+  const out = mkCanvas(w, hh), octx = out.getContext("2d");
+  const id = octx.createImageData(w, hh);
+  for (let i = 0; i < bits.length; i++) {
+    if (bits[i]) { id.data[i * 4 + 3] = 255; }
+    else if (opaqueWhite) { id.data[i * 4] = id.data[i * 4 + 1] = id.data[i * 4 + 2] = 255; id.data[i * 4 + 3] = 255; }
+  }
+  octx.putImageData(id, 0, 0);
+  return out;
+}
+
+const imgCache = new Map();
+function getImg(src) {
+  if (!src) return null;
+  let im = imgCache.get(src);
+  if (!im) { im = new Image(); im.onload = scheduleRender; im.src = src; imgCache.set(src, im); }
+  return im.complete && im.naturalWidth ? im : null;
+}
+async function imagesReady() {
+  await Promise.all(doc.objects.filter((o) => o.type === "image" && o.src).map((o) => {
+    getImg(o.src);
+    const im = imgCache.get(o.src);
+    return im.decode ? im.decode().catch(() => {}) : null;
+  }));
+}
+
+function drawPlaceholder(ctx, w, hh, msg) {
+  ctx.strokeStyle = "#000"; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+  ctx.strokeRect(1, 1, w - 2, hh - 2); ctx.setLineDash([]);
+  ctx.fillStyle = "#000"; ctx.font = `600 ${Math.max(10, Math.min(18, hh / 4))}px sans-serif`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(msg, w / 2, hh / 2);
+}
+
+function drawText(ctx, o, w, hh, vars) {
+  const lines = resolveVars(o.text, vars).split("\n");
+  const f = fontBy(o.font);
+  const weight = o.bold && !f.single ? 700 : 400;
+  ensureFont(f, weight);
+  const fontStr = (s) => `${o.italic ? "italic " : ""}${weight} ${s}px ${f.css}`;
+  const pad = o.invert ? Math.max(2, Math.round(Math.min(w, hh) * 0.08)) : 0;
+  const maxW = Math.max(1, w - 2 * pad), maxH = Math.max(1, hh - 2 * pad);
+  const lh = o.lineHeight || 1.15;
+  const off = o.dither ? mkCanvas(w, hh) : null;
+  const c = off ? off.getContext("2d") : ctx;
+  let size = o.size;
+  if (o.autoFit) {
+    const fits = (s) => {
+      c.font = fontStr(s);
+      let mw = 0; for (const l of lines) mw = Math.max(mw, c.measureText(l).width);
+      return mw <= maxW && lines.length * s * lh <= maxH * 1.02;
+    };
+    let lo = 4, hi = Math.max(4, Math.ceil(maxH * 1.3));
+    while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (fits(mid)) lo = mid; else hi = mid - 1; }
+    size = lo;
+    o._fit = size;
+  }
+  if (off) { c.fillStyle = "#fff"; c.fillRect(0, 0, off.width, off.height); }
+  if (o.invert) { c.fillStyle = "#000"; c.fillRect(0, 0, w, hh); }
+  c.fillStyle = o.invert ? "#fff" : "#000";
+  c.font = fontStr(size); c.textAlign = o.align; c.textBaseline = "middle";
+  const x = o.align === "left" ? pad : o.align === "right" ? w - pad : w / 2;
+  const blockH = lines.length * size * lh;
+  const y0 = o.valign === "top" ? pad : o.valign === "bottom" ? hh - pad - blockH : (hh - blockH) / 2;
+  lines.forEach((l, i) => c.fillText(l, x, y0 + size * lh * (i + 0.5)));
+  if (off) { ctx.imageSmoothingEnabled = false; ctx.drawImage(rasterize(off, { dither: true, opaqueWhite: o.invert }), 0, 0); }
+}
+
+function drawQR(ctx, o, w, hh, vars) {
+  if (!window.qrcode) return drawPlaceholder(ctx, w, hh, "QR unavailable offline");
+  const val = resolveVars(o.value, vars) || " ";
+  let q;
+  try { q = qrcode(0, o.ecc || "M"); q.addData(val); q.make(); } catch (_) { return drawPlaceholder(ctx, w, hh, "Too much text"); }
+  const n = q.getModuleCount();
+  const m = Math.max(1, Math.floor(Math.min(w, hh) / n));
+  const size = m * n, ox = Math.floor((w - size) / 2), oy = Math.floor((hh - size) / 2);
+  ctx.fillStyle = "#000";
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) ctx.fillRect(ox + c * m, oy + r * m, m, m);
+}
+
+function drawBarcode(ctx, o, w, hh, vars) {
+  if (!window.JsBarcode) return drawPlaceholder(ctx, w, hh, "Barcode unavailable offline");
+  const val = resolveVars(o.value, vars);
+  const fontSize = o.showText ? Math.max(10, Math.round(hh * 0.2)) : 0;
+  const opts = { format: o.format, width: 1, height: Math.max(8, Math.round(hh - (o.showText ? fontSize + 4 : 0))), displayValue: !!o.showText,
+    fontSize, textMargin: 2, margin: 0, background: "#ffffff", lineColor: "#000000", font: "sans-serif" };
+  const c = document.createElement("canvas");
+  let ok = true;
+  try { JsBarcode(c, val, Object.assign({}, opts, { valid: (v) => { ok = ok && v; } })); } catch (_) { ok = false; }
+  if (!ok || !c.width) return drawPlaceholder(ctx, w, hh, `Invalid ${o.format}`);
+  const bw = Math.max(1, Math.floor(w / c.width));
+  if (bw > 1) JsBarcode(c, val, Object.assign({}, opts, { width: bw }));
+  ctx.imageSmoothingEnabled = false;
+  if (c.width > w) ctx.drawImage(c, 0, Math.floor((hh - c.height) / 2), w, c.height);
+  else ctx.drawImage(c, Math.floor((w - c.width) / 2), Math.floor((hh - c.height) / 2));
+}
+
+function drawImageObj(ctx, o, w, hh) {
+  const img = getImg(o.src);
+  if (!img) return drawPlaceholder(ctx, w, hh, "Image");
+  const t = mkCanvas(w, hh), tc = t.getContext("2d");
+  const iw = img.naturalWidth || 300, ih = img.naturalHeight || 300;
+  let dw = w, dh = hh, dx = 0, dy = 0;
+  if (o.fit !== "stretch") {
+    const s = o.fit === "cover" ? Math.max(w / iw, hh / ih) : Math.min(w / iw, hh / ih);
+    dw = iw * s; dh = ih * s; dx = (w - dw) / 2; dy = (hh - dh) / 2;
+  }
+  tc.fillStyle = "#fff"; tc.fillRect(0, 0, t.width, t.height);
+  tc.drawImage(img, dx, dy, dw, dh);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(rasterize(t, { threshold: o.threshold, dither: o.dither, invert: o.invert }), 0, 0);
+}
+
+function drawShape(ctx, o, w, hh) {
+  const s = Math.max(1, o.stroke || 1);
+  const style = o.style || (o.dash ? "dashed" : "solid");
+  ctx.fillStyle = ctx.strokeStyle = "#000";
+  ctx.lineWidth = s;
+  ctx.setLineDash(style === "dashed" ? [s * 3, s * 2] : style === "dotted" ? [0.01, s * 2.2] : []);
+  ctx.lineCap = style === "dotted" ? "round" : "butt";
+  const path = (inset) => {
+    ctx.beginPath();
+    if (o.type === "line") { ctx.moveTo(0, hh / 2 + inset); ctx.lineTo(w, hh / 2 + inset); return; }
+    if (o.type === "ellipse") { ctx.ellipse(w / 2, hh / 2, Math.max(0.5, w / 2 - inset), Math.max(0.5, hh / 2 - inset), 0, 0, Math.PI * 2); return; }
+    const x = inset, y = inset, rw = Math.max(1, w - 2 * inset), rh = Math.max(1, hh - 2 * inset);
+    const r = Math.max(0, Math.min((o.radius || 0) - inset, rw / 2, rh / 2));
+    ctx.moveTo(x + r, y); ctx.arcTo(x + rw, y, x + rw, y + rh, r); ctx.arcTo(x + rw, y + rh, x, y + rh, r);
+    ctx.arcTo(x, y + rh, x, y, r); ctx.arcTo(x, y, x + rw, y, r); ctx.closePath();
+  };
+  if (o.fill && o.type !== "line") { ctx.setLineDash([]); path(0); ctx.fill(); }
+  else if (style === "double") {
+    const t = Math.max(1, Math.round(s / 2)); ctx.lineWidth = t;
+    if (o.type === "line") { path(-s); ctx.stroke(); path(s); ctx.stroke(); }
+    else { path(t / 2); ctx.stroke(); path(t / 2 + s + t); ctx.stroke(); }
+  } else { path(o.type === "line" ? 0 : s / 2); ctx.stroke(); }
+  ctx.setLineDash([]); ctx.lineCap = "butt";
+}
+
+function drawObject(ctx, o, vars) {
+  ctx.save();
+  ctx.translate(o.x + o.w / 2, o.y + o.h / 2);
+  ctx.rotate((o.rot || 0) * Math.PI / 180);
+  const swap = (o.rot || 0) % 180 !== 0;
+  const w = Math.max(1, Math.round(swap ? o.h : o.w)), hh = Math.max(1, Math.round(swap ? o.w : o.h));
+  ctx.translate(-w / 2, -hh / 2);
+  try {
+    switch (o.type) {
+      case "text": drawText(ctx, o, w, hh, vars); break;
+      case "qr": drawQR(ctx, o, w, hh, vars); break;
+      case "barcode": drawBarcode(ctx, o, w, hh, vars); break;
+      case "image": drawImageObj(ctx, o, w, hh); break;
+      default: drawShape(ctx, o, w, hh);
+    }
+  } catch (e) { console.error(e); }
+  ctx.restore();
+}
+
+const designCanvas = document.createElement("canvas");
+function renderDesignBits(vars) {
+  const { dw, dh } = designDims();
+  designCanvas.width = dw; designCanvas.height = dh;
+  const ctx = designCanvas.getContext("2d", { willReadFrequently: true });
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, dw, dh);
+  for (const o of doc.objects) drawObject(ctx, o, vars);
+  const px = ctx.getImageData(0, 0, dw, dh).data;
+  const bits = new Uint8Array(dw * dh);
+  for (let i = 0; i < bits.length; i++) bits[i] = (0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2]) < 128 ? 1 : 0;
+  return { bits, dw, dh };
+}
+
+function toPrintOrientation(bits, dw, dh, rot) {
+  if (!rot) return { bits, W: dw, H: dh };
+  const W = rot % 180 ? dh : dw, H = rot % 180 ? dw : dh;
+  const out = new Uint8Array(W * H);
+  for (let y = 0; y < dh; y++) for (let x = 0; x < dw; x++) {
+    if (!bits[y * dw + x]) continue;
+    let px, py;
+    if (rot === 90) { px = W - 1 - y; py = x; }
+    else if (rot === 180) { px = W - 1 - x; py = H - 1 - y; }
+    else { px = y; py = H - 1 - x; }
+    out[py * W + px] = 1;
+  }
+  return { bits: out, W, H };
+}
+
+function printBitmap(vars) {
+  const { bits, dw, dh } = renderDesignBits(vars);
+  const p = toPrintOrientation(bits, dw, dh, +doc.label.rotate || 0);
+  const bpr = Math.ceil(p.W / 8), rows = [];
+  for (let y = 0; y < p.H; y++) {
+    const r = new Uint8Array(bpr);
+    for (let x = 0; x < p.W; x++) if (p.bits[y * p.W + x]) r[x >> 3] |= 0x80 >> (x & 7);
+    rows.push(r);
+  }
+  return { W: p.W, H: p.H, rows };
+}
+
+/* =====================================================================
+   Editor view
+   ===================================================================== */
+const view = $("view");
+const bmpCanvas = document.createElement("canvas");
+let rafPending = false;
+function scheduleRender() { if (!rafPending) { rafPending = true; requestAnimationFrame(render); } }
+
+function fitScale(dw, dh) {
+  const avail = Math.max(120, $("canvasWrap").clientWidth - 32);
+  const maxH = Math.max(180, window.innerHeight * 0.5);
+  return Math.max(0.4, Math.min(4, avail / dw, maxH / dh));
+}
+
+function render() {
+  rafPending = false;
+  const { bits, dw, dh } = renderDesignBits(previewVars());
+  bmpCanvas.width = dw; bmpCanvas.height = dh;
+  const bctx = bmpCanvas.getContext("2d");
+  const id = bctx.createImageData(dw, dh);
+  for (let i = 0; i < bits.length; i++) {
+    const v = bits[i] ? 20 : 255;
+    id.data[i * 4] = id.data[i * 4 + 1] = id.data[i * 4 + 2] = v; id.data[i * 4 + 3] = 255;
+  }
+  bctx.putImageData(id, 0, 0);
+
+  const scale = viewScale = fitScale(dw, dh);
+  const dpr = window.devicePixelRatio || 1;
+  view.width = Math.round(dw * scale * dpr); view.height = Math.round(dh * scale * dpr);
+  view.style.width = dw * scale + "px"; view.style.height = dh * scale + "px";
+  const ctx = view.getContext("2d");
+  ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(bmpCanvas, 0, 0);
+
+  // label shape guide
+  if (doc.label.shape !== "rect") {
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, dw, dh);
+    if (doc.label.shape === "circle") ctx.ellipse(dw / 2, dh / 2, dw / 2, dh / 2, 0, 0, Math.PI * 2);
+    else { const r = Math.min(dw, dh) * 0.12; ctx.moveTo(r, 0); ctx.arcTo(dw, 0, dw, dh, r); ctx.arcTo(dw, dh, 0, dh, r); ctx.arcTo(0, dh, 0, 0, r); ctx.arcTo(0, 0, dw, 0, r); ctx.closePath(); }
+    ctx.fillStyle = "rgba(120,130,145,.35)"; ctx.fill("evenodd");
+    ctx.restore();
+  }
+  // guides
+  ctx.save();
+  ctx.strokeStyle = "#ec4899"; ctx.lineWidth = 1 / scale; ctx.setLineDash([4 / scale, 3 / scale]);
+  for (const g of guides) { ctx.beginPath(); if (g.v != null) { ctx.moveTo(g.v, 0); ctx.lineTo(g.v, dh); } else { ctx.moveTo(0, g.h); ctx.lineTo(dw, g.h); } ctx.stroke(); }
+  ctx.restore();
+  // selection
+  const o = selected();
+  if (o) {
+    const css = getComputedStyle(document.documentElement).getPropertyValue("--sel").trim() || "#2563eb";
+    ctx.save();
+    ctx.strokeStyle = css; ctx.lineWidth = 1.5 / scale;
+    ctx.strokeRect(o.x, o.y, o.w, o.h);
+    const hs = 10 / scale;
+    ctx.fillStyle = "#fff";
+    for (const [cx, cy] of corners(o)) { ctx.fillRect(cx - hs / 2, cy - hs / 2, hs, hs); ctx.strokeRect(cx - hs / 2, cy - hs / 2, hs, hs); }
+    ctx.restore();
+    if (o.type === "text" && o.autoFit && o._fit) { const s = $("props").querySelector('[data-key="size"]'); if (s && document.activeElement !== s) s.value = o._fit; }
+  }
+
+  const pd = printDims();
+  let meta = `${doc.label.w} × ${doc.label.h} mm · ${pd.W} × ${pd.H} dots`;
+  if (pd.capped) meta += " · print width limited to 48 mm by the printhead";
+  $("meta").textContent = meta;
+
+  const L = jobLabels();
+  const total = L.reduce((a, l) => a + l.qty, 0);
+  $("previewNav").classList.toggle("hidden", L.length < 2);
+  $("navPos").textContent = `Label ${previewIdx + 1} of ${L.length}`;
+  $("btnPrintOne").disabled = !bt.char || bt.printing;
+  $("btnPrint").textContent = total > 1 ? `Print ${total} labels` : "Print";
+  $("btnPrint2").textContent = total > 1 ? `Print ${total}` : "Print";
+  updateFillIn();
+}
+
+/* =====================================================================
+   Names, blanks & numbering panel
+   ===================================================================== */
+function insertToken(token, fallbackText) {
+  const o = selected();
+  if (o && o.type === "text") { o.text = (o.text || "") + token; pushHistory(); buildProps(); scheduleRender(); }
+  else addObject("text", { text: fallbackText });
+}
+function updateFillIn() {
+  const P = $("fillIn");
+  const vars = customVars(), num = usesNumbers();
+  const sig = JSON.stringify([vars, num, vars.map((k) => fieldOf(k).useList)]);
+  if (P.dataset.sig === sig) { updateFillCounts(); return; }
+  P.dataset.sig = sig; P.innerHTML = "";
+  if (!vars.length) {
+    P.append(h("p", { class: "hint" }, "Want to change a name quickly? Type ", h("b", {}, "{name}"), " in any text, e.g. ",
+      h("b", {}, "To {name}, from Logan"), ". A box appears here where you can type one name, or paste a list to print one label per name."));
+    P.append(h("div", { class: "actions" },
+      h("button", { class: "small", onclick: () => insertToken(" {name}", "To {name}, from Logan") }, "Add a {name} blank"),
+      num ? null : h("button", { class: "small", onclick: () => insertToken(" {n} of {total}", "{n} of {total}") }, "Add 1 of 12 numbering")));
+  }
+  for (const k of vars) {
+    const f = fieldOf(k);
+    const head = h("div", { class: "var-head" }, h("span", { class: "tag" }, `{${k}}`));
+    if (!f.useList) {
+      const input = h("input", { type: "text", placeholder: `Type the ${k}…`, enterkeyhint: "done", autocomplete: "off" });
+      input.value = f.value;
+      input.addEventListener("input", () => { f.value = input.value; saveSettings(); scheduleRender(); });
+      head.append(input);
+    }
+    const chk = h("input", { type: "checkbox" }); chk.checked = !!f.useList;
+    chk.addEventListener("change", () => { f.useList = chk.checked; saveSettings(); previewIdx = 0; scheduleRender(); });
+    head.append(h("label", { class: "inline" }, chk, "Use a list"));
+    const box = h("div", { class: "var" }, head);
+    if (f.useList) {
+      const ta = h("textarea", { rows: 5, placeholder: "One per line, e.g.\nEmma\nNoah\nOlivia" });
+      ta.value = f.list || "";
+      ta.addEventListener("input", () => { f.list = ta.value; saveSettings(); scheduleRender(); });
+      box.append(ta, h("div", { class: "hint", "data-count": k, style: "margin-top:4px" }));
+    }
+    P.append(box);
+  }
+  if (num) {
+    const from = h("input", { type: "number", min: 0 }); from.value = S.counterStart;
+    const to = h("input", { type: "number", min: 0, "data-role": "to" });
+    from.addEventListener("input", () => { S.counterStart = Math.max(0, +from.value || 0); saveSettings(); scheduleRender(); });
+    to.addEventListener("change", () => {
+      const want = (+to.value || 0) - (+S.counterStart || 0) + 1;
+      if (want >= 1) { S.copies = Math.max(1, Math.round(want / jobRows().length)); saveSettings(); syncSettingInputs(); }
+      scheduleRender();
+    });
+    const cont = h("input", { type: "checkbox" }); cont.checked = !!S.continueCount;
+    cont.addEventListener("change", () => { S.continueCount = cont.checked; saveSettings(); });
+    P.append(h("div", { class: "var" },
+      h("div", { class: "var-head", style: "margin-bottom:8px" }, h("span", { class: "tag" }, "{n}"), h("b", {}, "Numbering")),
+      h("div", { class: "row", style: "margin-bottom:6px" }, fld("Numbers from", from), fld("to", to)),
+      h("label", { class: "inline" }, cont, "Continue from the last number next time"),
+      h("div", { class: "hint", "data-count": "#", style: "margin-top:6px" }, ""),
+      h("div", { class: "hint", style: "margin-top:4px" }, "Use {n} for 1, 2, 3 · {n} of {total} for 1 of 12 · {n:3} for 001 · {letter} for A, B, C")));
+  }
+  updateFillCounts();
+}
+function updateFillCounts() {
+  const P = $("fillIn");
+  for (const el of P.querySelectorAll("[data-count]")) {
+    const k = el.dataset.count;
+    if (k === "#") {
+      const total = jobLabels().reduce((a, l) => a + l.qty, 0);
+      const start = +S.counterStart || 0;
+      el.textContent = `${total} label${total > 1 ? "s" : ""}, numbered ${start} to ${start + total - 1}`;
+      const to = P.querySelector('[data-role="to"]');
+      if (to && document.activeElement !== to) to.value = start + total - 1;
+    } else {
+      const n = listOf(fieldOf(k)).length, c = Math.max(1, +S.copies || 1);
+      el.textContent = n ? `${n} item${n > 1 ? "s" : ""} → ${n * c} label${n * c > 1 ? "s" : ""}${c > 1 ? ` (${c} copies each)` : ""}` : "Type or paste one per line";
+    }
+  }
+}
+
+async function previewAll() {
+  await imagesReady();
+  const L = jobLabels(), T = $("thumbs"); T.innerHTML = "";
+  const max = Math.min(L.length, 120);
+  for (let i = 0; i < max; i++) {
+    const { bits, dw, dh } = renderDesignBits(L[i].vars);
+    const c = mkCanvas(dw, dh), ctx = c.getContext("2d"), id = ctx.createImageData(dw, dh);
+    for (let j = 0; j < bits.length; j++) { const v = bits[j] ? 20 : 255; id.data[j * 4] = id.data[j * 4 + 1] = id.data[j * 4 + 2] = v; id.data[j * 4 + 3] = 255; }
+    ctx.putImageData(id, 0, 0);
+    T.append(h("figure", {}, c, h("figcaption", {}, `#${i + 1}${L[i].qty > 1 ? ` × ${L[i].qty} copies` : ""}`)));
+  }
+  const total = L.reduce((a, l) => a + l.qty, 0);
+  $("previewTitle").textContent = `${total} label${total > 1 ? "s" : ""}` + (L.length > max ? ` (showing first ${max})` : "");
+  $("previewPrint").disabled = !bt.char || bt.printing;
+  $("previewDlg").showModal();
+}
+
+const selected = () => doc.objects.find((o) => o.id === selId) || null;
+const corners = (o) => [[o.x, o.y, "nw"], [o.x + o.w, o.y, "ne"], [o.x, o.y + o.h, "sw"], [o.x + o.w, o.y + o.h, "se"]];
+function toDesign(e) {
+  const r = view.getBoundingClientRect();
+  const { dw, dh } = designDims();
+  return { x: (e.clientX - r.left) / r.width * dw, y: (e.clientY - r.top) / r.height * dh };
+}
+function hitTest(p) {
+  for (let i = doc.objects.length - 1; i >= 0; i--) {
+    const o = doc.objects[i], pad = Math.max(0, (6 / viewScale) - Math.min(o.w, o.h) / 2);
+    if (p.x >= o.x - pad && p.x <= o.x + o.w + pad && p.y >= o.y - pad && p.y <= o.y + o.h + pad) return o;
+  }
+  return null;
+}
+const SNAP = 4;
+function snap1(pos, size, total) {
+  const M = 2 * DPMM;
+  let best = null;
+  for (const [edge, target] of [[0, 0], [0, M], [size / 2, total / 2], [size, total], [size, total - M]]) {
+    const d = target - (pos + edge);
+    if (Math.abs(d) <= SNAP && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, line: target };
+  }
+  return best ? { pos: pos + best.d, line: best.line } : { pos, line: null };
+}
+
+let drag = null;
+view.addEventListener("pointerdown", (e) => {
+  const p = toDesign(e);
+  const o = selected();
+  const hs = 14 / viewScale;
+  if (o) {
+    const c = corners(o).find(([cx, cy]) => Math.abs(p.x - cx) <= hs && Math.abs(p.y - cy) <= hs);
+    if (c) { drag = { mode: "resize", corner: c[2], start: p, orig: { x: o.x, y: o.y, w: o.w, h: o.h }, moved: false }; view.setPointerCapture(e.pointerId); return; }
+  }
+  const hit = hitTest(p);
+  if (hit) {
+    if (hit.id !== selId) { selId = hit.id; buildProps(); }
+    drag = { mode: "move", start: p, orig: { x: hit.x, y: hit.y, w: hit.w, h: hit.h }, moved: false };
+    view.setPointerCapture(e.pointerId);
+  } else if (selId) { selId = null; buildProps(); }
+  scheduleRender();
+});
+view.addEventListener("pointermove", (e) => {
+  const p = toDesign(e);
+  if (!drag) {
+    const o = selected(), hs = 14 / viewScale;
+    const c = o && corners(o).find(([cx, cy]) => Math.abs(p.x - cx) <= hs && Math.abs(p.y - cy) <= hs);
+    view.style.cursor = c ? (c[2] === "nw" || c[2] === "se" ? "nwse-resize" : "nesw-resize") : hitTest(p) ? "move" : "default";
+    return;
+  }
+  const o = selected(); if (!o) return;
+  const dx = p.x - drag.start.x, dy = p.y - drag.start.y;
+  if (Math.abs(dx) + Math.abs(dy) > 1) drag.moved = true;
+  const { dw, dh } = designDims();
+  guides = [];
+  if (drag.mode === "move") {
+    const sx = snap1(drag.orig.x + dx, o.w, dw), sy = snap1(drag.orig.y + dy, o.h, dh);
+    o.x = Math.round(sx.pos); o.y = Math.round(sy.pos);
+    if (sx.line != null) guides.push({ v: sx.line });
+    if (sy.line != null) guides.push({ h: sy.line });
+  } else {
+    let { x, y, w, h: hh } = drag.orig;
+    const c = drag.corner;
+    if (c.includes("e")) w += dx;
+    if (c.includes("w")) { x += dx; w -= dx; }
+    if (c.includes("s")) hh += dy;
+    if (c.includes("n")) { y += dy; hh -= dy; }
+    if ((o.type === "qr" || e.shiftKey) && drag.orig.h > 0) {
+      const ar = drag.orig.w / drag.orig.h;
+      if (Math.abs(dx) > Math.abs(dy)) { const nh = w / ar; if (c.includes("n")) y += hh - nh; hh = nh; }
+      else { const nw = hh * ar; if (c.includes("w")) x += w - nw; w = nw; }
+    }
+    if (w < 4) { if (c.includes("w")) x -= 4 - w; w = 4; }
+    if (hh < 4) { if (c.includes("n")) y -= 4 - hh; hh = 4; }
+    Object.assign(o, { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(hh) });
+  }
+  scheduleRender();
+});
+function endDrag() {
+  if (!drag) return;
+  const moved = drag.moved;
+  drag = null; guides = [];
+  if (moved) { pushHistory(); buildProps(); }
+  scheduleRender();
+}
+view.addEventListener("pointerup", endDrag);
+view.addEventListener("pointercancel", endDrag);
+view.addEventListener("dblclick", () => { const t = $("props").querySelector("textarea, input[type=text]"); if (t) { t.focus(); t.select && t.select(); } });
+
+document.addEventListener("keydown", (e) => {
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "textarea" || tag === "select") return;
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if (mod && e.key.toLowerCase() === "y") { e.preventDefault(); redo(); return; }
+  const o = selected(); if (!o) return;
+  if (mod && e.key.toLowerCase() === "d") { e.preventDefault(); duplicate(); return; }
+  if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); removeSel(); return; }
+  const step = e.shiftKey ? 8 : 1;
+  const mv = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+  if (mv) { e.preventDefault(); o.x += mv[0]; o.y += mv[1]; scheduleRender(); clearTimeout(keyTimer); keyTimer = setTimeout(() => { pushHistory(); buildProps(); }, 400); }
+});
+let keyTimer = null;
+
+/* =====================================================================
+   History & persistence
+   ===================================================================== */
+let undoStack = [], redoStack = [];
+const snapshot = () => JSON.stringify(doc, (k, v) => (k.startsWith("_") ? undefined : v));
+function pushHistory() {
+  const s = snapshot();
+  if (undoStack[undoStack.length - 1] === s) return;
+  undoStack.push(s); if (undoStack.length > 80) undoStack.shift();
+  redoStack = [];
+  if (!store.set("ls.doc", JSON.parse(s))) log("Couldn't autosave (storage full; try smaller images)", "warn");
+  updateUndoButtons();
+}
+function restore(s) {
+  doc = JSON.parse(s);
+  if (!doc.objects.some((o) => o.id === selId)) selId = null;
+  store.set("ls.doc", doc);
+  syncLabelInputs(); buildProps(); scheduleRender(); updateUndoButtons();
+}
+function undo() { if (undoStack.length < 2) return; redoStack.push(undoStack.pop()); restore(undoStack[undoStack.length - 1]); }
+function redo() { const s = redoStack.pop(); if (!s) return; undoStack.push(s); restore(s); }
+function updateUndoButtons() { $("btnUndo").disabled = undoStack.length < 2; $("btnRedo").disabled = !redoStack.length; }
+
+/* =====================================================================
+   Objects: add / duplicate / delete
+   ===================================================================== */
+function addObject(type, props = {}) {
+  const { dw, dh } = designDims();
+  const base = Object.assign({ id: uid(), type, rot: 0 }, clone(DEFAULTS[type]), props);
+  if (base.w == null || base.h == null) {
+    let w = Math.round(dw * 0.7), hh = Math.round(dh * 0.4);
+    if (type === "qr") { w = hh = Math.round(Math.min(dw, dh) * 0.7); }
+    if (type === "barcode") { w = Math.round(dw * 0.85); hh = Math.round(dh * 0.5); }
+    if (type === "line") { w = Math.round(dw * 0.8); hh = 8; }
+    if (type === "rect") { w = dw - 2 * DPMM; hh = dh - 2 * DPMM; }
+    if (type === "ellipse") { w = hh = Math.round(Math.min(dw, dh) * 0.6); }
+    base.w = base.w ?? w; base.h = base.h ?? hh;
+  }
+  base.x = base.x ?? Math.round((dw - base.w) / 2);
+  base.y = base.y ?? Math.round((dh - base.h) / 2);
+  doc.objects.push(base);
+  selId = base.id;
+  pushHistory(); buildProps(); scheduleRender();
+  return base;
+}
+function duplicate() {
+  const o = selected(); if (!o) return;
+  const c = Object.assign(clone(o), { id: uid(), x: o.x + 8, y: o.y + 8 });
+  doc.objects.push(c); selId = c.id; pushHistory(); buildProps(); scheduleRender();
+}
+function removeSel() {
+  const i = doc.objects.findIndex((o) => o.id === selId); if (i < 0) return;
+  doc.objects.splice(i, 1); selId = null; pushHistory(); buildProps(); scheduleRender();
+}
+function reorder(dir) {
+  const i = doc.objects.findIndex((o) => o.id === selId); if (i < 0) return;
+  const [o] = doc.objects.splice(i, 1);
+  if (dir === "front") doc.objects.push(o); else doc.objects.unshift(o);
+  pushHistory(); scheduleRender();
+}
+
+async function fileToDataURL(file, max = 700) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const nw = img.naturalWidth || 300, nh = img.naturalHeight || 300;
+    const s = Math.min(1, max / Math.max(nw, nh));
+    const c = mkCanvas(nw * s, nh * s);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    return { src: c.toDataURL("image/png"), w: c.width, h: c.height };
+  } finally { URL.revokeObjectURL(url); }
+}
+async function addImageFile(file) {
+  try {
+    const { src, w, h: ih } = await fileToDataURL(file);
+    const { dw, dh } = designDims();
+    const s = Math.min(dw * 0.9 / w, dh * 0.9 / ih);
+    addObject("image", { src, w: Math.max(8, Math.round(w * s)), h: Math.max(8, Math.round(ih * s)) });
+  } catch (_) { log("Couldn't read that image", "err"); }
+}
+
+/* =====================================================================
+   Properties panel
+   ===================================================================== */
+function fld(label, input) { return h("label", {}, label, input); }
+function bind(o, key, el, parse) {
+  el.dataset.key = key;
+  el.addEventListener("input", () => { o[key] = parse(el); onObjEdit(o, key); });
+  el.addEventListener("change", () => { o[key] = parse(el); onObjEdit(o, key); pushHistory(); });
+  return el;
+}
+function onObjEdit(o, key) {
+  const P = $("props");
+  if (key === "size" && o.autoFit) { o.autoFit = false; const c = P.querySelector('[data-key="autoFit"]'); if (c) c.checked = false; }
+  if (key === "autoFit" && !o.autoFit && o._fit) { o.size = o._fit; const s = P.querySelector('[data-key="size"]'); if (s) s.value = o.size; }
+  scheduleRender();
+}
+const F = {
+  text: (o, k, l) => { const i = h("input", { type: "text" }); i.value = o[k] ?? ""; return fld(l, bind(o, k, i, (x) => x.value)); },
+  area: (o, k, l) => { const i = h("textarea", { rows: 3 }); i.value = o[k] ?? ""; return fld(l, bind(o, k, i, (x) => x.value)); },
+  num: (o, k, l, min, max, step = 1) => { const i = h("input", { type: "number", min, max, step }); i.value = o[k]; return fld(l, bind(o, k, i, (x) => { const v = parseFloat(x.value); return Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : o[k]; })); },
+  mm: (o, k, l) => { const i = h("input", { type: "number", step: 0.5 }); i.value = +(o[k] / DPMM).toFixed(2); return fld(l, bind(o, k, i, (x) => { const v = parseFloat(x.value); return Number.isFinite(v) ? Math.max(k === "w" || k === "h" ? 4 : -9999, Math.round(v * DPMM)) : o[k]; })); },
+  sel: (o, k, l, opts, num) => { const s = h("select"); opts.forEach(([v, t]) => s.append(h("option", { value: v }, t))); s.value = String(o[k]); return fld(l, bind(o, k, s, (x) => (num ? +x.value : x.value))); },
+  chk: (o, k, l) => { const i = h("input", { type: "checkbox" }); i.checked = !!o[k]; bind(o, k, i, (x) => x.checked); return h("label", { class: "inline" }, i, l); },
+  range: (o, k, l, min, max) => { const i = h("input", { type: "range", min, max }); i.value = o[k]; return fld(l, bind(o, k, i, (x) => +x.value)); },
+};
+const row = (...els) => h("div", { class: "row" }, ...els);
+
+function varChips(target) {
+  const tokens = ["{name}", "{n}", "{n} of {total}", "{n:3}", "{letter}", "{date}", "{date+3}", "{date+7}", "{time}"].concat(batch ? batch.headers.map((x) => `{${x}}`) : []);
+  return h("div", { class: "chips" }, h("span", { class: "hint" }, "Insert:"),
+    tokens.map((t) => h("button", { class: "chip", type: "button", onclick: () => {
+      const s = target.selectionStart ?? target.value.length, e = target.selectionEnd ?? s;
+      target.value = target.value.slice(0, s) + t + target.value.slice(e);
+      target.focus(); target.setSelectionRange(s + t.length, s + t.length);
+      target.dispatchEvent(new Event("input")); target.dispatchEvent(new Event("change"));
+    } }, t)));
+}
+
+function buildProps() {
+  const P = $("props"); P.innerHTML = "";
+  const o = selected();
+  if (!o) {
+    $("propsTitle").textContent = "Edit";
+    P.append(h("p", { class: "hint" }, "Tap something on the label to edit it, or add text, emoji, images, QR codes and more with the buttons above. Drag to move it, and drag a corner to resize it. Shift+drag keeps proportions. Arrow keys nudge it. Ctrl+Z undoes."));
+    return;
+  }
+  $("propsTitle").textContent = TYPE_NAMES[o.type];
+  if (o.type === "text") {
+    const a = F.area(o, "text", "Text"); P.append(a, varChips(a.querySelector("textarea")));
+    P.append(row(F.sel(o, "font", "Font", FONTS.map((f) => [f.name, f.name])),
+      F.sel(o, "align", "Align", [["left", "Left"], ["center", "Center"], ["right", "Right"]]),
+      F.sel(o, "valign", "Vertical", [["top", "Top"], ["middle", "Middle"], ["bottom", "Bottom"]])));
+    P.append(row(F.num(o, "size", "Size (dots)", 4, 600), F.num(o, "lineHeight", "Line spacing", 0.7, 2.5, 0.05)));
+    P.append(row(F.chk(o, "autoFit", "Auto-size to box"), F.chk(o, "bold", "Bold"), F.chk(o, "italic", "Italic"), F.chk(o, "invert", "White on black"), F.chk(o, "dither", "Shade colors (emoji)")));
+  } else if (o.type === "qr") {
+    const a = F.area(o, "value", "QR content (link, text, Wi-Fi…)"); P.append(a, varChips(a.querySelector("textarea")));
+    P.append(row(F.sel(o, "ecc", "Error correction", [["L", "Low"], ["M", "Medium"], ["Q", "High"], ["H", "Highest"]])));
+    P.append(h("p", { class: "hint" }, "Wi-Fi tip: WIFI:T:WPA;S:NetworkName;P:password;;"));
+  } else if (o.type === "barcode") {
+    const t = F.text(o, "value", "Barcode value"); P.append(t, varChips(t.querySelector("input")));
+    P.append(row(F.sel(o, "format", "Type", [["CODE128", "Code 128 (any text)"], ["EAN13", "EAN-13"], ["EAN8", "EAN-8"], ["UPC", "UPC-A"], ["CODE39", "Code 39"], ["ITF14", "ITF-14"]]),
+      F.chk(o, "showText", "Show numbers")));
+  } else if (o.type === "image") {
+    P.append(row(F.sel(o, "fit", "Fit", [["contain", "Fit inside"], ["cover", "Fill (crop)"], ["stretch", "Stretch"]]),
+      F.chk(o, "dither", "Shading (photos)"), F.chk(o, "invert", "Invert")));
+    P.append(F.range(o, "threshold", "Lightness", 1, 254));
+    P.append(row(h("button", { class: "small", type: "button", onclick: () => { replaceTarget = o; $("imgInput").click(); } }, "Replace image…")));
+  } else {
+    if (!o.style) o.style = o.dash ? "dashed" : "solid";
+    const r = [F.num(o, "stroke", "Line thickness (dots)", 1, 40),
+      F.sel(o, "style", "Style", [["solid", "Solid"], ["dashed", "Dashed"], ["dotted", "Dotted"], ["double", "Double"]])];
+    if (o.type === "rect") r.push(F.num(o, "radius", "Corner radius", 0, 200));
+    if (o.type !== "line") r.push(F.chk(o, "fill", "Filled"));
+    P.append(row(...r));
+  }
+  P.append(h("hr", { style: "border:none;border-top:1px solid var(--line);margin:4px 0 10px" }));
+  P.append(row(F.mm(o, "x", "X (mm)"), F.mm(o, "y", "Y (mm)"), F.mm(o, "w", "Width (mm)"), F.mm(o, "h", "Height (mm)"),
+    F.sel(o, "rot", "Rotate", [[0, "0°"], [90, "90°"], [180, "180°"], [270, "270°"]], true)));
+  const { dw, dh } = designDims();
+  const act = (label, fn, cls) => h("button", { class: "small " + (cls || ""), type: "button", onclick: fn }, label);
+  P.append(h("div", { class: "actions" },
+    act("Center ↔", () => { o.x = Math.round((dw - o.w) / 2); pushHistory(); buildProps(); scheduleRender(); }),
+    act("Center ↕", () => { o.y = Math.round((dh - o.h) / 2); pushHistory(); buildProps(); scheduleRender(); }),
+    act("Fill label", () => { Object.assign(o, { x: DPMM, y: DPMM, w: dw - 2 * DPMM, h: dh - 2 * DPMM }); pushHistory(); buildProps(); scheduleRender(); }),
+    act("To front", () => reorder("front")), act("To back", () => reorder("back")),
+    act("Duplicate", duplicate), act("Delete", removeSel, "danger")));
+}
+let replaceTarget = null;
+
+/* =====================================================================
+   Emoji picker
+   ===================================================================== */
+const EMOJI = {
+  "Cute": "❤️ 💕 💖 ⭐ 🌟 ✨ 🌸 🌼 🌷 🌻 🍀 🌈 ☀️ 🌙 ☁️ ❄️ 🎀 🎁 🎉 🎈 🦋 🐝 🐞",
+  "Animals": "🐱 🐶 🐰 🐻 🐼 🐨 🦊 🐸 🐷 🐮 🐣 🐧 🐳 🦄 🐾",
+  "Food": "🍓 🍒 🍋 🍎 🍑 🥑 🥕 🌶️ 🧄 🍪 🧁 🍰 🍯 ☕ 🍵 🍼 🧂 🥫 🍝 🍚",
+  "Home": "🏠 📦 ✂️ 📌 ✏️ 📚 💡 🔑 🧺 🧼 💊 🩹 🧸 👶 🎂 📅 ♻️ ⚠️ ✅ ❌",
+  "Crisp symbols": "♥ ♡ ★ ☆ ✿ ❀ ☺ ☀ ☁ ☂ ♪ ♫ ✓ ✗ ✉ ☎ ⚑ ➜ ✂ ✎ ♨ ⌂ ❄ ☘",
+};
+function buildEmojiPicker() {
+  const p = $("emojiPicker");
+  for (const [group, list] of Object.entries(EMOJI)) {
+    p.append(h("div", { class: "lbl" }, group));
+    const crisp = group === "Crisp symbols";
+    for (const e of list.split(" ")) p.append(h("button", { type: "button", title: e, onclick: () => {
+      const { dw, dh } = designDims(); const s = Math.round(Math.min(dw, dh) * 0.6);
+      addObject("text", { text: e, bold: false, dither: !crisp, w: s, h: s });
+      p.classList.add("hidden");
+    } }, e));
+  }
+}
+
+/* =====================================================================
+   Starter designs
+   ===================================================================== */
+const T = (type, x, y, w, hh, props) => Object.assign({ id: uid(), type, rot: 0 }, clone(DEFAULTS[type]), { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(hh) }, props || {});
+const STARTERS = {
+  "Gift tag: To {name}, from Logan": (W, H) => [
+    T("rect", 5, 5, W - 10, H - 10, { stroke: 3, radius: 18, style: "dotted" }),
+    T("text", W * 0.06, H * 0.22, H * 0.56, H * 0.56, { text: "🎁", bold: false, dither: true }),
+    T("text", W * 0.06 + H * 0.6, H * 0.12, W - (W * 0.12 + H * 0.6), H * 0.48, { text: "To {name}", font: "Pacifico", bold: false }),
+    T("text", W * 0.06 + H * 0.6, H * 0.6, W - (W * 0.12 + H * 0.6), H * 0.28, { text: "from Logan", font: "Caveat" })],
+  "One line: To {name}, from Logan": (W, H) => [T("text", 8, 8, W - 16, H - 16, { text: "To {name},\nfrom Logan", font: "Fredoka" })],
+  "Name labels (one per name)": (W, H) => [T("text", 8, 8, W - 16, H - 16, { text: "{name}", font: "Fredoka" })],
+  "Numbered set: 1 of 12": (W, H) => [
+    T("rect", 5, 5, W - 10, H - 10, { stroke: 2, radius: 10, style: "double" }),
+    T("text", 12, H * 0.14, W - 24, H * 0.5, { text: "{n} of {total}", font: "Fredoka" }),
+    T("text", 12, H * 0.64, W - 24, H * 0.24, { text: "Box", bold: false })],
+  "Simple text": (W, H) => [T("text", 8, 8, W - 16, H - 16, { text: "Your text" })],
+  "Pantry jar (with date)": (W, H) => [
+    T("text", 8, 6, W - 16, H * 0.58, { text: "Flour", font: "Fredoka" }),
+    T("line", W * 0.15, H * 0.64, W * 0.7, 4, { stroke: 2 }),
+    T("text", 8, H * 0.68, W - 16, H * 0.26, { text: "Made {date}", bold: false })],
+  "Leftovers (use-by)": (W, H) => [
+    T("text", 8, 6, W - 16, H * 0.4, { text: "Leftovers", font: "Baloo" }),
+    T("text", 8, H * 0.46, W - 16, H * 0.22, { text: "Cooked {date}", bold: false }),
+    T("text", 8, H * 0.7, W - 16, H * 0.24, { text: "Eat by {date+3}", invert: true })],
+  "Cute sticker": (W, H) => [
+    T("rect", 6, 6, W - 12, H - 12, { stroke: 3, radius: 18, style: "dashed" }),
+    T("text", W * 0.08, H * 0.15, H * 0.7, H * 0.7, { text: "🐱", bold: false, dither: true }),
+    T("text", W * 0.08 + H * 0.72, H * 0.15, W - (W * 0.16 + H * 0.72), H * 0.7, { text: "Hello\nthere!", font: "Pacifico", bold: false })],
+  "Name tag": (W, H) => [
+    T("rect", 4, 4, W - 8, H * 0.3, { fill: true }),
+    T("text", 8, 6, W - 16, H * 0.3 - 4, { text: "HELLO, MY NAME IS", invert: true }),
+    T("text", 8, H * 0.36, W - 16, H * 0.58, { text: "Name", font: "Caveat" })],
+  "Address": (W, H) => [T("text", 12, 10, W - 24, H - 20, { text: "Jane Smith\n123 Maple Street\nToronto, ON  M5V 1A1", align: "left", bold: false })],
+  "Price tag": (W, H) => [
+    T("text", 8, 6, W - 16, H * 0.4, { text: "Item name", bold: false }),
+    T("text", 8, H * 0.48, W - 16, H * 0.46, { text: "$9.99", invert: true })],
+  "QR code + caption": (W, H) => [
+    T("qr", 8, 8, H - 16, H - 16, { value: "https://example.com" }),
+    T("text", H, 8, W - H - 8, H - 16, { text: "Scan me!", align: "left" })],
+  "Numbered (serial)": (W, H) => [
+    T("text", 8, 6, W - 16, H * 0.45, { text: "No. {n:3}" }),
+    T("barcode", W * 0.1, H * 0.52, W * 0.8, H * 0.42, { value: "{n:6}" })],
+};
+
+function refreshTemplateSelect() {
+  const s = $("tplSelect"); s.innerHTML = "";
+  const g1 = h("optgroup", { label: "Starter designs" });
+  Object.keys(STARTERS).forEach((k) => g1.append(h("option", { value: "s:" + k }, k)));
+  s.append(g1);
+  const names = Object.keys(templates);
+  if (names.length) {
+    const g2 = h("optgroup", { label: "My saved designs" });
+    names.sort().forEach((k) => g2.append(h("option", { value: "t:" + k }, k)));
+    s.append(g2);
+  }
+}
+function loadTemplate() {
+  const v = $("tplSelect").value; if (!v) return;
+  if (v.startsWith("s:")) {
+    const { dw, dh } = designDims();
+    doc.objects = STARTERS[v.slice(2)](dw, dh);
+  } else {
+    const t = templates[v.slice(2)]; if (!t) return;
+    doc = clone(t);
+  }
+  S.copies = 1; previewIdx = 0; saveSettings(); syncSettingInputs();
+  selId = null; syncLabelInputs(); pushHistory(); buildProps(); scheduleRender();
+}
+
+/* =====================================================================
+   Batch (CSV / pasted spreadsheet)
+   ===================================================================== */
+function parseTable(text) {
+  text = String(text || "").replace(/\r\n?/g, "\n").replace(/\n+$/, "");
+  if (!text.trim()) return null;
+  const first = text.split("\n")[0];
+  const delim = first.includes("\t") ? "\t" : first.split(";").length > first.split(",").length ? ";" : ",";
+  const rows = []; let r = [], f = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"' && f === "") q = true;
+    else if (c === delim) { r.push(f); f = ""; }
+    else if (c === "\n") { r.push(f); rows.push(r); r = []; f = ""; }
+    else f += c;
+  }
+  r.push(f); rows.push(r);
+  const headers = rows.shift().map((x, i) => x.trim() || `col${i + 1}`);
+  const data = rows.filter((x) => x.some((v) => v.trim() !== "")).map((x) => Object.fromEntries(headers.map((hd, i) => [hd, (x[i] ?? "").trim()])));
+  return data.length ? { headers, rows: data } : null;
+}
+function updateBatch() {
+  batch = parseTable($("batchText").value);
+  previewIdx = 0;
+  $("batchInfo").textContent = batch ? `${batch.rows.length} rows · columns: ${batch.headers.map((x) => `{${x}}`).join(" ")}` : "";
+  buildProps(); scheduleRender();
+}
+
+/* =====================================================================
+   Bluetooth: NIIMBOT protocol
+   Frame: 55 55 | cmd | len | data | xor | AA AA
+   ===================================================================== */
 const SERVICES = [
   "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
   "0000ffe0-0000-1000-8000-00805f9b34fb",
@@ -231,356 +1312,281 @@ const SERVICES = [
   "49535343-fe7d-4ae5-8fa9-9fafd205e455",
 ];
 const NAME_PREFIXES = ["B21", "B1", "B3", "B18", "B203", "D11", "D110", "D101", "H1"];
+const ERRORS = { 1: "Lid is open", 2: "Out of labels", 3: "Low battery", 4: "Battery problem", 5: "Cancelled on printer", 6: "Data error",
+  7: "Printer overheated", 8: "Paper output problem", 9: "Printer busy", 10: "No printhead", 11: "Too cold", 12: "Printhead loose", 16: "Unsupported labels" };
 
-// Printer error codes (best-effort mapping)
-const ERRORS = {
-  1: "Cover open", 2: "Out of labels", 3: "Low battery", 4: "Battery problem",
-  5: "Cancelled on printer", 6: "Data error", 7: "Printer overheated",
-  8: "Paper output problem", 9: "Printer busy", 10: "No printhead",
-  11: "Temperature too low", 12: "Printhead loose", 16: "Unsupported labels",
-};
+const bt = { device: null, char: null, rx: [], waiters: [], printing: false, cancel: false, roll: undefined, info: {} };
+let chain = Promise.resolve();
+function exclusive(fn) { const run = chain.then(() => fn()); chain = run.catch(() => {}); return run; }
 
-const $ = (id) => document.getElementById(id);
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const hex = (arr) => Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join(" ");
-const u16 = (n) => [(n >> 8) & 0xff, n & 0xff];
-
-const bt = { device: null, char: null, rx: [], waiters: [], printing: false };
-
-/* ============================================================
-   Logging / status
-   ============================================================ */
-function log(msg, cls) {
-  const el = $("log");
-  const line = document.createElement("div");
-  if (cls) line.className = cls;
-  line.textContent = `${new Date().toLocaleTimeString()}  ${msg}`;
-  el.appendChild(line);
-  el.scrollTop = el.scrollHeight;
-}
-function setStatus(connected, text) {
-  $("dot").classList.toggle("on", connected);
-  $("statusText").textContent = text;
-  $("btnConnect").disabled = connected;
-  $("btnDisconnect").disabled = !connected;
-  $("btnPrint").disabled = !connected || bt.printing;
-}
-
-/* ============================================================
-   NIIMBOT packet protocol
-   Frame: 55 55 | cmd | len | data… | xor(cmd,len,data) | AA AA
-   ============================================================ */
 function packet(cmd, data = []) {
   let cs = cmd ^ data.length;
   for (const b of data) cs ^= b;
   return new Uint8Array([0x55, 0x55, cmd, data.length, ...data, cs, 0xaa, 0xaa]);
 }
-
 function onNotify(ev) {
   const dv = ev.target.value;
   for (let i = 0; i < dv.byteLength; i++) bt.rx.push(dv.getUint8(i));
-  parseRx();
-}
-
-function parseRx() {
   for (;;) {
-    let start = -1;
-    for (let i = 0; i < bt.rx.length - 1; i++) {
-      if (bt.rx[i] === 0x55 && bt.rx[i + 1] === 0x55) { start = i; break; }
-    }
-    if (start < 0) { bt.rx = bt.rx.length && bt.rx[bt.rx.length - 1] === 0x55 ? [0x55] : []; return; }
-    if (start > 0) bt.rx = bt.rx.slice(start);
+    let s = -1;
+    for (let i = 0; i < bt.rx.length - 1; i++) if (bt.rx[i] === 0x55 && bt.rx[i + 1] === 0x55) { s = i; break; }
+    if (s < 0) { bt.rx = bt.rx.length && bt.rx[bt.rx.length - 1] === 0x55 ? [0x55] : []; return; }
+    if (s > 0) bt.rx = bt.rx.slice(s);
     if (bt.rx.length < 4) return;
     const cmd = bt.rx[2], len = bt.rx[3], total = len + 7;
     if (bt.rx.length < total) return;
     const data = bt.rx.slice(4, 4 + len);
-    let cs = cmd ^ len;
-    for (const b of data) cs ^= b;
-    const valid = cs === bt.rx[4 + len] && bt.rx[5 + len] === 0xaa && bt.rx[6 + len] === 0xaa;
-    if (!valid) { bt.rx = bt.rx.slice(2); continue; }
+    let cs = cmd ^ len; for (const b of data) cs ^= b;
+    if (cs !== bt.rx[4 + len] || bt.rx[5 + len] !== 0xaa || bt.rx[6 + len] !== 0xaa) { bt.rx = bt.rx.slice(2); continue; }
     bt.rx = bt.rx.slice(total);
     dispatch({ cmd, data });
   }
 }
-
 function dispatch(p) {
-  if (p.cmd === 0xdb) { // printer error
+  if (p.cmd === 0xdb) {
     const code = p.data[0];
     const msg = ERRORS[code] ? `${ERRORS[code]} (code ${code})` : `Printer error code ${code}`;
     log(msg, "err");
-    const w = bt.waiters.shift();
-    if (w) { clearTimeout(w.timer); w.reject(new Error(msg)); }
+    const w = bt.waiters.shift(); if (w) { clearTimeout(w.timer); w.reject(new Error(msg)); }
     return;
   }
-  if (p.cmd === 0x00) { // "not supported"
-    const w = bt.waiters.shift();
-    if (w) { clearTimeout(w.timer); w.resolve(null); }
-    return;
-  }
+  if (p.cmd === 0x00) { const w = bt.waiters.shift(); if (w) { clearTimeout(w.timer); w.resolve(null); } return; }
   const i = bt.waiters.findIndex((w) => w.codes.includes(p.cmd));
-  if (i >= 0) {
-    const [w] = bt.waiters.splice(i, 1);
-    clearTimeout(w.timer);
-    w.resolve(p);
-  }
+  if (i >= 0) { const [w] = bt.waiters.splice(i, 1); clearTimeout(w.timer); w.resolve(p); }
 }
-
 function waitFor(codes, timeout) {
   return new Promise((resolve, reject) => {
     const w = { codes, resolve, reject };
-    w.timer = setTimeout(() => {
-      const i = bt.waiters.indexOf(w);
-      if (i >= 0) bt.waiters.splice(i, 1);
-      resolve(null);
-    }, timeout);
+    w.timer = setTimeout(() => { const i = bt.waiters.indexOf(w); if (i >= 0) bt.waiters.splice(i, 1); resolve(null); }, timeout);
     bt.waiters.push(w);
   });
 }
-
 async function write(bytes) {
   const c = bt.char;
   if (!c) throw new Error("Printer not connected");
   if (c.properties.writeWithoutResponse) await c.writeValueWithoutResponse(bytes);
   else await c.writeValueWithResponse(bytes);
 }
-
-// Send a command and wait for its reply (reply code is usually cmd+1 or cmd+0x10).
-async function req(cmd, data, replyCode, timeout = 2000, quiet = false) {
-  const p = waitFor([replyCode], timeout);
+async function req(cmd, data, reply, timeout = 2000, quiet = false) {
+  const p = waitFor([reply], timeout);
   await write(packet(cmd, data));
   const r = await p;
   if (!r && !quiet) log(`No reply to 0x${cmd.toString(16)}, continuing`, "warn");
   return r;
 }
 
-/* ============================================================
-   Bluetooth connect / disconnect
-   ============================================================ */
+const beInt = (d) => d.reduce((a, b) => a * 256 + b, 0);
+async function getInfo(key) { const r = await req(0x40, [key], 0x40 + key, 1000, true); return r && r.data.length ? r.data : null; }
+
+async function readRfid() {
+  const r = await req(0x1a, [1], 0x1b, 1500, true);
+  if (!r) return undefined;            // no answer: printer doesn't support it
+  const d = r.data;
+  if (!d.length || d[0] === 0) return null; // no chip
+  try {
+    let i = 8;
+    const uuid = hex(d.slice(0, 8)).replace(/ /g, "");
+    const dec = (a) => new TextDecoder().decode(new Uint8Array(a)).replace(/\0/g, "").trim();
+    const bl = d[i++]; const barcode = dec(d.slice(i, i + bl)); i += bl;
+    const sl = d[i++]; const serial = dec(d.slice(i, i + sl)); i += sl;
+    const total = d.length >= i + 2 ? (d[i] << 8) | d[i + 1] : NaN;
+    const used = d.length >= i + 4 ? (d[i + 2] << 8) | d[i + 3] : NaN;
+    const type = d.length >= i + 5 ? d[i + 4] : 0;
+    return { uuid, barcode: barcode || uuid, serial, total, used, type };
+  } catch (_) { return null; }
+}
+
+/* ----- connect ----- */
 async function connect() {
   try {
-    const opts = $("showAll").checked
+    const opts = S.showAll
       ? { acceptAllDevices: true, optionalServices: SERVICES }
       : { filters: NAME_PREFIXES.map((p) => ({ namePrefix: p })), optionalServices: SERVICES };
     const device = await navigator.bluetooth.requestDevice(opts);
-    setStatus(false, `Connecting to ${device.name || "printer"}…`);
+    setConn("busy", `Connecting to ${device.name || "printer"}…`);
     device.addEventListener("gattserverdisconnected", onDisconnected);
     const server = await device.gatt.connect();
-
     let ch = null;
     for (const svc of await server.getPrimaryServices()) {
-      for (const c of await svc.getCharacteristics()) {
-        if (c.properties.notify && (c.properties.writeWithoutResponse || c.properties.write)) { ch = c; break; }
-      }
+      for (const c of await svc.getCharacteristics()) if (c.properties.notify && (c.properties.writeWithoutResponse || c.properties.write)) { ch = c; break; }
       if (ch) break;
     }
-    if (!ch) throw new Error("This device doesn't look like a NIIMBOT printer (no compatible Bluetooth channel).");
-
+    if (!ch) throw new Error("This doesn't look like a NIIMBOT printer (no compatible Bluetooth channel).");
     await ch.startNotifications();
     ch.addEventListener("characteristicvaluechanged", onNotify);
-    bt.device = device; bt.char = ch; bt.rx = [];
-
-    await req(0xc1, [1], 0xc2, 1500, true); // "connect" handshake
-    setStatus(true, `Connected: ${device.name || "printer"}`);
+    Object.assign(bt, { device, char: ch, rx: [], roll: undefined, info: { name: device.name || "Printer" } });
+    setConn("on", `Connected: ${device.name || "printer"}`);
     log(`Connected to ${device.name || "printer"}`, "ok");
+    await exclusive(async () => {
+      await req(0xc1, [1], 0xc2, 1500, true);
+      const fw = await getInfo(9); if (fw) bt.info.firmware = (beInt(fw) / 100).toFixed(2);
+      await refreshBattery();
+    });
+    renderPrinterInfo();
+    await detectRoll(true);
   } catch (e) {
-    if (e.name === "NotFoundError") { log("No printer selected. Is it switched on? Try 'Show all Bluetooth devices'.", "warn"); }
+    if (e.name === "NotFoundError") log("No printer chosen. Is it switched on? You can also tick 'Show all Bluetooth devices'.", "warn");
     else log(`Connect failed: ${e.message}`, "err");
-    setStatus(false, "Not connected");
+    if (!bt.char) setConn("", "Not connected");
   }
 }
-
+async function refreshBattery() {
+  const b = await getInfo(10);
+  if (b) { const v = beInt(b); bt.info.battery = v <= 4 ? `${v * 25}%` : `${Math.min(100, v)}%`; }
+}
 function onDisconnected() {
-  bt.char = null;
+  bt.char = null; bt.roll = undefined;
   bt.waiters.splice(0).forEach((w) => { clearTimeout(w.timer); w.reject(new Error("Printer disconnected")); });
-  setStatus(false, "Not connected");
+  setConn("", "Not connected");
+  renderPrinterInfo(); renderRoll();
   log("Printer disconnected", "warn");
 }
-
-function disconnect() {
-  if (bt.device && bt.device.gatt.connected) bt.device.gatt.disconnect();
+function setConn(state, text) {
+  $("dot").className = "dot " + state;
+  $("statusText").textContent = text;
+  const on = !!bt.char;
+  $("btnConnect").classList.toggle("hidden", on);
+  $("btnDisconnect").classList.toggle("hidden", !on);
+  updatePrintButtons();
+}
+function updatePrintButtons() {
+  const can = !!bt.char && !bt.printing;
+  $("btnPrint").disabled = $("btnPrint2").disabled = $("btnPrintOne").disabled = !can;
+  $("btnCancel").classList.toggle("hidden", !bt.printing);
+  if (!bt.printing) $("mbStatus").textContent = bt.char ? rollSummary() || "Connected" : "Not connected";
+}
+function renderPrinterInfo() {
+  const el = $("printerInfo"); el.innerHTML = "";
+  if (!bt.char) { el.append(h("span", {}, "Not connected")); return; }
+  el.append(h("span", {}, "Printer ", h("b", {}, bt.info.name)));
+  if (bt.info.battery) el.append(h("span", {}, "Battery ", h("b", {}, bt.info.battery)));
+  if (bt.info.firmware) el.append(h("span", {}, "Firmware ", h("b", {}, bt.info.firmware)));
 }
 
-/* ============================================================
-   Rendering: design canvas -> 1-bit bitmap
-   ============================================================ */
-let loadedImage = null;
-let mode = "text";
-
-function dims() {
-  const wmm = Math.max(5, +$("wmm").value || 50);
-  const hmm = Math.max(5, +$("hmm").value || 30);
-  const W = Math.min(Math.round(wmm * DPMM), HEAD_PX);
-  const H = Math.round(hmm * DPMM);
-  return { W, H, clipped: Math.round(wmm * DPMM) > HEAD_PX };
+/* ----- sticker roll detection ----- */
+function rollSummary() {
+  const r = bt.roll; if (!r) return "";
+  const lib = rolls[r.barcode];
+  const left = Number.isFinite(r.total) && Number.isFinite(r.used) ? `${Math.max(0, r.total - r.used)} left` : "";
+  return [lib ? lib.name : "Unknown roll", left].filter(Boolean).join(" · ");
 }
-
-function drawDesign(dw, dh) {
-  const c = document.createElement("canvas");
-  c.width = dw; c.height = dh;
-  const ctx = c.getContext("2d");
-  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, dw, dh);
-  ctx.fillStyle = "#000"; ctx.strokeStyle = "#000";
-  const m = Math.round((+$("margin").value || 0) * DPMM);
-  const bx = m, by = m, bw = Math.max(1, dw - 2 * m), bh = Math.max(1, dh - 2 * m);
-
-  if (mode === "text") {
-    const lines = $("text").value.split("\n");
-    const family = $("font").value;
-    const weight = $("bold").checked ? "700" : "400";
-    const lh = 1.15;
-    const border = $("border").checked;
-    const pad = border ? 6 : 0;
-    const maxW = bw - 2 * pad, maxH = bh - 2 * pad;
-    const fits = (sz) => {
-      ctx.font = `${weight} ${sz}px ${family}`;
-      const widest = Math.max(...lines.map((l) => ctx.measureText(l).width));
-      return widest <= maxW && lines.length * sz * lh <= maxH;
-    };
-    let size = +$("fontSize").value || 40;
-    if ($("autoFit").checked) {
-      let lo = 6, hi = 400;
-      while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (fits(mid)) lo = mid; else hi = mid - 1; }
-      size = lo;
-      $("fontSize").value = size;
-    }
-    ctx.font = `${weight} ${size}px ${family}`;
-    ctx.textBaseline = "middle";
-    const align = $("align").value;
-    ctx.textAlign = align;
-    const x = align === "left" ? bx + pad : align === "right" ? bx + bw - pad : bx + bw / 2;
-    const blockH = lines.length * size * lh;
-    let y = by + (bh - blockH) / 2 + (size * lh) / 2;
-    for (const l of lines) { ctx.fillText(l, x, y); y += size * lh; }
-    if (border) { ctx.lineWidth = 3; ctx.strokeRect(bx + 1.5, by + 1.5, bw - 3, bh - 3); }
-  } else if (loadedImage) {
-    const iw = loadedImage.naturalWidth || loadedImage.width;
-    const ih = loadedImage.naturalHeight || loadedImage.height;
-    const fit = $("fit").value;
-    let w = bw, h = bh, x = bx, y = by;
-    if (fit !== "stretch") {
-      const s = fit === "contain" ? Math.min(bw / iw, bh / ih) : Math.max(bw / iw, bh / ih);
-      w = iw * s; h = ih * s; x = bx + (bw - w) / 2; y = by + (bh - h) / 2;
-    }
-    ctx.save();
-    ctx.beginPath(); ctx.rect(bx, by, bw, bh); ctx.clip();
-    ctx.drawImage(loadedImage, x, y, w, h);
-    ctx.restore();
+async function detectRoll(force) {
+  if (!bt.char || bt.printing) return;
+  const info = await exclusive(readRfid).catch(() => undefined);
+  if (info === undefined) { if (force) { bt.roll = null; renderRoll(); log("Printer didn't answer the roll-detection request", "warn"); } return; }
+  const prev = bt.roll;
+  const changed = force || !prev !== !info || (prev && info && prev.uuid !== info.uuid);
+  bt.roll = info;
+  if (changed) {
+    if (info) {
+      const lib = rolls[info.barcode];
+      log(lib ? `Detected roll: ${lib.name}` : `New sticker roll detected (code ${info.barcode})`, "ok");
+      if (lib) applyRoll(lib, info);
+      else if ([1, 2, 3, 4, 5].includes(info.type)) { S.labelType = info.type; saveSettings(); syncSettingInputs(); }
+    } else if (prev) log("Sticker roll removed", "warn");
   }
-  return c;
+  renderRoll();
+  updatePrintButtons();
 }
-
-function renderBitmap() {
-  const { W, H } = dims();
-  const rot = +$("rotate").value;
-  const swap = rot === 90 || rot === 270;
-  const design = drawDesign(swap ? H : W, swap ? W : H);
-
-  const pc = document.createElement("canvas");
-  pc.width = W; pc.height = H;
-  const ctx = pc.getContext("2d");
-  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
-  if (rot === 90) { ctx.translate(W, 0); ctx.rotate(Math.PI / 2); }
-  else if (rot === 180) { ctx.translate(W, H); ctx.rotate(Math.PI); }
-  else if (rot === 270) { ctx.translate(0, H); ctx.rotate(-Math.PI / 2); }
-  ctx.drawImage(design, 0, 0);
-
-  const px = ctx.getImageData(0, 0, W, H).data;
-  const gray = new Float32Array(W * H);
-  for (let i = 0; i < W * H; i++) gray[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
-
-  const thr = +$("threshold").value;
-  const bits = new Uint8Array(W * H); // 1 = black dot
-  if ($("dither").checked && mode === "image") {
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      const i = y * W + x, old = gray[i], nw = old < thr ? 0 : 255, err = old - nw;
-      bits[i] = nw === 0 ? 1 : 0;
-      if (x + 1 < W) gray[i + 1] += err * 7 / 16;
-      if (y + 1 < H) {
-        if (x > 0) gray[i + W - 1] += err * 3 / 16;
-        gray[i + W] += err * 5 / 16;
-        if (x + 1 < W) gray[i + W + 1] += err / 16;
-      }
-    }
-  } else {
-    for (let i = 0; i < W * H; i++) bits[i] = gray[i] < thr ? 1 : 0;
-  }
-  if ($("invert").checked) for (let i = 0; i < bits.length; i++) bits[i] ^= 1;
-
-  // Pack rows: MSB = leftmost dot, 1 = black
-  const bpr = Math.ceil(W / 8);
-  const rows = [];
-  for (let y = 0; y < H; y++) {
-    const r = new Uint8Array(bpr);
-    for (let x = 0; x < W; x++) if (bits[y * W + x]) r[x >> 3] |= 0x80 >> (x & 7);
-    rows.push(r);
-  }
-  return { W, H, bits, rows };
+function applyRoll(lib, info) {
+  if (info && [1, 2, 3, 4, 5].includes(info.type)) { S.labelType = info.type; saveSettings(); syncSettingInputs(); }
+  if (doc.label.w !== lib.w || doc.label.h !== lib.h || doc.label.shape !== (lib.shape || "rect")) setLabel({ w: lib.w, h: lib.h, shape: lib.shape || "rect" });
 }
-
-function updatePreview() {
-  const { W, H, bits } = renderBitmap();
-  const cv = $("preview");
-  cv.width = W; cv.height = H;
-  const ctx = cv.getContext("2d");
-  const img = ctx.createImageData(W, H);
-  for (let i = 0; i < bits.length; i++) {
-    const v = bits[i] ? 17 : 255;
-    img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = v;
-    img.data[i * 4 + 3] = 255;
+function renderRoll() {
+  const el = $("rollInfo"); el.innerHTML = "";
+  if (!bt.char) return;
+  const box = h("div", { class: "roll" });
+  el.append(box);
+  const r = bt.roll;
+  if (r === undefined) { box.append(h("span", { class: "hint" }, "Checking for a sticker roll…")); return; }
+  if (r === null) {
+    box.append(h("div", {}, "No chip detected. Genuine NIIMBOT rolls are detected automatically; for generic labels, set the size below."));
+    box.append(h("div", { class: "actions", style: "margin-top:8px" }, h("button", { class: "small", onclick: () => detectRoll(true) }, "Check again")));
+    return;
   }
-  ctx.putImageData(img, 0, 0);
-  cv.style.width = Math.min(W * 1.5, 576) + "px";
-  const d = dims();
-  $("meta").textContent = `${W} × ${H} dots (${(W / DPMM).toFixed(0)} × ${(H / DPMM).toFixed(0)} mm)` +
-    (d.clipped ? " · width capped at 48 mm (printhead limit)" : "");
+  const lib = rolls[r.barcode];
+  const left = Number.isFinite(r.total) && Number.isFinite(r.used) ? `${Math.max(0, r.total - r.used)} of ${r.total} stickers left` : "";
+  if (lib && !el.dataset.editing) {
+    box.append(h("div", {}, "Loaded: ", h("b", {}, lib.name), ` · ${lib.w} × ${lib.h} mm`));
+    if (left) box.append(h("div", { class: "hint" }, left));
+    box.append(h("div", { class: "actions", style: "margin-top:8px" },
+      h("button", { class: "small", onclick: () => applyRoll(lib, r) }, "Use this size"),
+      h("button", { class: "small", onclick: () => { el.dataset.editing = "1"; renderRoll(); } }, "Edit"),
+      h("button", { class: "small", onclick: () => detectRoll(true) }, "Re-check")));
+    return;
+  }
+  // unknown roll (or editing): ask once, remember forever
+  const cur = lib || { name: "", w: doc.label.w, h: doc.label.h, shape: doc.label.shape };
+  const name = h("input", { type: "text", placeholder: "e.g. Cat stickers 40×30" }); name.value = cur.name;
+  const w = h("input", { type: "number", min: 5, max: 60, step: 1 }); w.value = cur.w;
+  const hh = h("input", { type: "number", min: 5, max: 200, step: 1 }); hh.value = cur.h;
+  const shape = h("select", {}, h("option", { value: "rect" }, "Rectangle"), h("option", { value: "rounded" }, "Rounded"), h("option", { value: "circle" }, "Round / oval"));
+  shape.value = cur.shape || "rect";
+  box.append(
+    lib ? h("div", {}, h("b", {}, "Edit this roll")) : h("div", { class: "new" }, "New sticker roll detected"),
+    h("div", { class: "hint", style: "margin:4px 0 8px" }, `${lib ? "" : "Enter its size once and it'll be recognized automatically from now on. "}${left}`),
+    row(fld("Name", name)),
+    row(fld("Width (mm)", w), fld("Height (mm)", hh), fld("Shape", shape)),
+    h("div", { class: "actions" },
+      h("button", { class: "small primary", onclick: () => {
+        const entry = { name: name.value.trim() || `Roll ${r.barcode}`, w: +w.value || 50, h: +hh.value || 30, shape: shape.value, type: r.type };
+        rolls[r.barcode] = entry; store.set("ls.rolls", rolls);
+        delete el.dataset.editing;
+        applyRoll(entry, r); renderRoll(); renderRollList();
+        log(`Saved roll "${entry.name}"`, "ok");
+      } }, "Save & use"),
+      lib ? h("button", { class: "small", onclick: () => { delete el.dataset.editing; renderRoll(); } }, "Cancel") : null));
 }
+function renderRollList() {
+  const el = $("rollList"); el.innerHTML = "";
+  const keys = Object.keys(rolls);
+  if (!keys.length) { el.append(h("span", { class: "hint" }, "No rolls saved yet.")); return; }
+  for (const k of keys) {
+    const r = rolls[k];
+    el.append(h("div", { class: "item" },
+      h("span", {}, h("b", {}, r.name), ` · ${r.w} × ${r.h} mm`),
+      h("span", { class: "actions" },
+        h("button", { class: "small", onclick: () => applyRoll(r) }, "Use"),
+        h("button", { class: "small danger", onclick: () => { if (confirm(`Forget "${r.name}"?`)) { delete rolls[k]; store.set("ls.rolls", rolls); renderRollList(); renderRoll(); } } }, "×"))));
+  }
+}
+setInterval(() => { if (S.autoDetect && bt.char && !bt.printing && !document.hidden) detectRoll(false); }, 4000);
 
-/* ============================================================
-   Printing
-   ============================================================ */
+/* ----- printing ----- */
 const popcount = (b) => { let c = 0; while (b) { c += b & 1; b >>= 1; } return c; };
-function rowCounts(row) {
-  const chunk = HEAD_PX / 8 / 3; // 16 bytes per third of the printhead
-  const c = [0, 0, 0];
-  row.forEach((b, i) => { c[Math.min(2, Math.floor(i / chunk))] += popcount(b); });
-  return c;
-}
+function rowCounts(r) { const chunk = HEAD_PX / 24, c = [0, 0, 0]; r.forEach((b, i) => { c[Math.min(2, Math.floor(i / chunk))] += popcount(b); }); return c; }
 const isEmpty = (r) => r.every((b) => b === 0);
 const sameRow = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+function checkCancel() { if (bt.cancel) throw new Error("Cancelled"); }
 
 async function sendRows(bmp, onProgress) {
-  const delay = Math.max(0, +$("rowDelay").value || 0);
+  const delay = Math.max(0, +S.rowDelay || 0);
   let y = 0;
   while (y < bmp.H) {
-    const row = bmp.rows[y];
-    let n = 1;
-    if (isEmpty(row)) {
+    checkCancel();
+    const r = bmp.rows[y]; let n = 1;
+    if (isEmpty(r)) {
       while (y + n < bmp.H && n < 255 && isEmpty(bmp.rows[y + n])) n++;
-      await write(packet(0x84, [...u16(y), n]));                   // blank rows
+      await write(packet(0x84, [...u16(y), n]));
     } else {
-      while (y + n < bmp.H && n < 255 && sameRow(row, bmp.rows[y + n])) n++;
-      const c = rowCounts(row);
-      await write(packet(0x85, [...u16(y), c[0], c[1], c[2], n, ...row])); // bitmap row
+      while (y + n < bmp.H && n < 255 && sameRow(r, bmp.rows[y + n])) n++;
+      const c = rowCounts(r);
+      await write(packet(0x85, [...u16(y), c[0], c[1], c[2], n, ...r]));
     }
     y += n;
     onProgress(y / bmp.H);
     if (delay) await sleep(delay);
   }
 }
-
 async function waitPrinted(pages) {
-  const t0 = Date.now();
-  let misses = 0;
+  const t0 = Date.now(); let misses = 0;
   while (Date.now() - t0 < 30000) {
     const r = await req(0xa3, [1], 0xb3, 1000, true);
-    if (r && r.data.length >= 2) {
-      misses = 0;
-      if (((r.data[0] << 8) | r.data[1]) >= pages) return;
-    } else if (++misses >= 3) { await sleep(1500); return; } // printer doesn't report status
+    if (r && r.data.length >= 2) { misses = 0; if (((r.data[0] << 8) | r.data[1]) >= pages) return; }
+    else if (++misses >= 3) { await sleep(1500); return; }
     await sleep(300);
   }
 }
-
 async function endPrint() {
   let misses = 0;
   for (let i = 0; i < 30; i++) {
@@ -590,123 +1596,206 @@ async function endPrint() {
     await sleep(250);
   }
 }
-
-async function print() {
-  if (bt.printing) return;
-  bt.printing = true; setStatus(true, $("statusText").textContent);
-  const prog = $("progress");
-  prog.classList.remove("hidden"); prog.value = 0;
-  try {
-    const bmp = renderBitmap();
-    const density = +$("density").value, type = +$("labelType").value;
-    const copies = Math.max(1, Math.min(99, +$("copies").value || 1));
-    const proto = $("proto").value;
-    log(`Printing ${bmp.W}×${bmp.H}, ${copies} cop${copies > 1 ? "ies" : "y"}, density ${density}, protocol ${proto.toUpperCase()}`);
-
-    await req(0x21, [density], 0x31);   // density
-    await req(0x23, [type], 0x33);      // paper type
-
-    if (proto === "v2") {
-      await req(0x01, [...u16(copies), 0, 0, 0, 0, 0], 0x02);         // print start
-      await req(0x03, [1], 0x04);                                       // page start
-      await req(0x13, [...u16(bmp.H), ...u16(bmp.W), ...u16(copies)], 0x14); // page size + copies
-      await sendRows(bmp, (f) => (prog.value = f));
-      await req(0xe3, [1], 0xe4);                                       // page end
-      await waitPrinted(copies);
-      await endPrint();
-    } else {
-      for (let k = 0; k < copies; k++) {
-        await req(0x01, [1], 0x02);
-        await req(0x03, [1], 0x04);
-        await req(0x13, [...u16(bmp.H), ...u16(bmp.W)], 0x14);
-        await sendRows(bmp, (f) => (prog.value = (k + f) / copies));
-        await req(0xe3, [1], 0xe4);
-        await waitPrinted(1);
-        await endPrint();
-      }
+function buildPages(only) {
+  const L = jobLabels();
+  const pick = only == null ? L : [Object.assign({}, L[only], { qty: 1 })];
+  return pick.map((l) => ({ bmp: printBitmap(l.vars), qty: l.qty }));
+}
+function setProgress(f, text) {
+  $("progress").value = f;
+  if (text) { $("printStatus").textContent = text; $("mbStatus").textContent = text; }
+}
+async function runPrint(pages, total) {
+  await req(0x21, [S.density], 0x31);
+  await req(0x23, [S.labelType], 0x33);
+  if (S.proto === "v2") {
+    await req(0x01, [...u16(total), 0, 0, 0, 0, 0], 0x02);
+    let sent = 0;
+    for (const p of pages) {
+      checkCancel();
+      if (sent > 0) await waitPrinted(sent);
+      setProgress(sent / total, `Printing ${Math.min(total, sent + 1)} of ${total}…`);
+      await req(0x03, [1], 0x04);
+      await req(0x13, [...u16(p.bmp.H), ...u16(p.bmp.W), ...u16(p.qty)], 0x14);
+      await sendRows(p.bmp, (f) => setProgress((sent + f * p.qty) / total));
+      await req(0xe3, [1], 0xe4);
+      sent += p.qty;
     }
-    prog.value = 1;
+    await waitPrinted(total);
+    await endPrint();
+  } else {
+    let done = 0;
+    for (const p of pages) for (let k = 0; k < p.qty; k++) {
+      checkCancel();
+      setProgress(done / total, `Printing ${done + 1} of ${total}…`);
+      await req(0x01, [1], 0x02);
+      await req(0x03, [1], 0x04);
+      await req(0x13, [...u16(p.bmp.H), ...u16(p.bmp.W)], 0x14);
+      await sendRows(p.bmp, (f) => setProgress((done + f) / total));
+      await req(0xe3, [1], 0xe4);
+      await waitPrinted(1);
+      await endPrint();
+      done++;
+    }
+  }
+}
+async function doPrint(only) {
+  if (!bt.char) { log("Connect the printer first", "warn"); return; }
+  if (bt.printing) return;
+  if (!doc.objects.length) { log("The label is empty. Add some text or an image first.", "warn"); return; }
+  const empty = customVars().filter((k) => { const f = fieldOf(k); return !f.value && !listOf(f).length; });
+  if (empty.length && !confirm(`These blanks are empty: ${empty.map((k) => `{${k}}`).join(", ")}.\nPrint anyway?`)) return;
+  bt.printing = true; bt.cancel = false; updatePrintButtons();
+  $("progress").classList.remove("hidden");
+  try {
+    await imagesReady();
+    const pages = buildPages(only);
+    const total = pages.reduce((a, p) => a + p.qty, 0);
+    if (total > 50 && !confirm(`Print ${total} labels?`)) return;
+    log(`Printing ${total} label${total > 1 ? "s" : ""} (${pages[0].bmp.W}×${pages[0].bmp.H} dots, darkness ${S.density}, ${S.proto.toUpperCase()})`);
+    await exclusive(() => runPrint(pages, total));
+    setProgress(1, "Done");
     log("Done", "ok");
+    if (only == null && S.continueCount && usesCounter()) { S.counterStart = (+S.counterStart || 0) + total; saveSettings(); $("fillIn").dataset.sig = ""; scheduleRender(); }
   } catch (e) {
-    log(`Print failed: ${e.message}`, "err");
+    log(`Print stopped: ${e.message}`, e.message === "Cancelled" ? "warn" : "err");
+    setProgress(0, e.message === "Cancelled" ? "Cancelled" : "Failed");
     try { await write(packet(0xf3, [1])); } catch (_) {}
   } finally {
-    bt.printing = false;
-    setStatus(!!bt.char, bt.char ? $("statusText").textContent : "Not connected");
-    setTimeout(() => prog.classList.add("hidden"), 1500);
+    bt.printing = false; updatePrintButtons();
+    setTimeout(() => { $("progress").classList.add("hidden"); $("printStatus").textContent = ""; updatePrintButtons(); }, 2500);
+    if (bt.char) { await exclusive(refreshBattery).catch(() => {}); renderPrinterInfo(); detectRoll(false); }
   }
 }
 
-/* ============================================================
-   UI wiring + remembered settings
-   ============================================================ */
-const SAVE_IDS = ["preset", "wmm", "hmm", "rotate", "margin", "text", "font", "align", "fontSize", "autoFit",
-  "bold", "border", "fit", "dither", "threshold", "invert", "copies", "density", "labelType", "proto", "rowDelay"];
-const STORE_KEY = "labelPrinterSettings.v1";
-
-function saveSettings() {
-  const s = {};
-  for (const id of SAVE_IDS) { const el = $(id); s[id] = el.type === "checkbox" ? el.checked : el.value; }
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (_) {}
+/* =====================================================================
+   UI wiring
+   ===================================================================== */
+function syncLabelInputs() {
+  $("lblW").value = doc.label.w; $("lblH").value = doc.label.h;
+  $("lblShape").value = doc.label.shape || "rect"; $("lblRot").value = String(doc.label.rotate || 0);
+  const key = `${doc.label.w}x${doc.label.h}`;
+  $("preset").value = [...$("preset").options].some((o) => o.value === key) ? key : "";
 }
-function loadSettings() {
-  let s = null;
-  try { s = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); } catch (_) {}
-  if (!s) return;
-  for (const id of SAVE_IDS) {
-    if (!(id in s)) continue;
-    const el = $(id);
-    if (el.type === "checkbox") el.checked = !!s[id]; else el.value = s[id];
-  }
+const SETTING_INPUTS = { copies: "num", density: "num", labelType: "num", dateFormat: "str", proto: "str", rowDelay: "num", autoDetect: "bool", showAll: "bool" };
+function syncSettingInputs() {
+  for (const [k, t] of Object.entries(SETTING_INPUTS)) { const el = $(k); if (t === "bool") el.checked = !!S[k]; else el.value = String(S[k]); }
 }
-
-function setMode(m) {
-  mode = m;
-  $("tabText").setAttribute("aria-selected", m === "text");
-  $("tabImage").setAttribute("aria-selected", m === "image");
-  $("paneText").classList.toggle("hidden", m !== "text");
-  $("paneImage").classList.toggle("hidden", m !== "image");
-  updatePreview();
+function download(name, text) {
+  const a = h("a", { href: URL.createObjectURL(new Blob([text], { type: "application/json" })), download: name });
+  document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
 
 function init() {
-  loadSettings();
+  if (window.qrcode && qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs["UTF-8"]) qrcode.stringToBytes = qrcode.stringToBytesFuncs["UTF-8"];
+  if (!navigator.bluetooth) { $("noBt").classList.remove("hidden"); $("btnConnect").disabled = true; }
+  else if (!window.isSecureContext) $("noSecure").classList.remove("hidden");
 
-  if (!navigator.bluetooth) { $("noBt").style.display = "block"; $("btnConnect").disabled = true; }
-  else if (!window.isSecureContext) { $("noSecure").style.display = "block"; }
+  syncLabelInputs(); syncSettingInputs();
+  buildEmojiPicker(); refreshTemplateSelect(); renderRollList();
 
-  $("preset").addEventListener("change", () => {
-    const v = $("preset").value;
-    if (v !== "custom") { const [w, h] = v.split("x"); $("wmm").value = w; $("hmm").value = h; }
+  // settings
+  for (const [k, t] of Object.entries(SETTING_INPUTS)) {
+    $(k).addEventListener("change", () => {
+      const el = $(k); S[k] = t === "bool" ? el.checked : t === "num" ? +el.value : el.value;
+      saveSettings(); scheduleRender();
+      if (k === "autoDetect" && S.autoDetect) detectRoll(true);
+    });
+  }
+  $("copies").addEventListener("input", () => { S.copies = Math.max(1, +$("copies").value || 1); saveSettings(); scheduleRender(); });
+
+  // preview navigation
+  const step = (d) => { const n = jobLabels().length; previewIdx = (previewIdx + d + n) % n; scheduleRender(); };
+  $("navPrev").addEventListener("click", () => step(-1));
+  $("navNext").addEventListener("click", () => step(1));
+  $("btnPreviewAll").addEventListener("click", previewAll);
+  $("btnPrintOne").addEventListener("click", () => doPrint(previewIdx));
+  $("previewClose").addEventListener("click", () => $("previewDlg").close());
+  $("previewPrint").addEventListener("click", () => { $("previewDlg").close(); doPrint(); });
+
+  // label
+  $("preset").addEventListener("change", () => { const v = $("preset").value; if (v) { const [w, hh] = v.split("x").map(Number); setLabel({ w, h: hh }); } });
+  $("lblW").addEventListener("change", () => { const v = Math.max(5, Math.min(60, +$("lblW").value || 50)); setLabel({ w: v }); });
+  $("lblH").addEventListener("change", () => { const v = Math.max(5, Math.min(200, +$("lblH").value || 30)); setLabel({ h: v }); });
+  $("lblShape").addEventListener("change", () => setLabel({ shape: $("lblShape").value }));
+  $("lblRot").addEventListener("change", () => setLabel({ rotate: +$("lblRot").value }));
+
+  // toolbar
+  document.querySelectorAll("[data-add]").forEach((b) => b.addEventListener("click", () => addObject(b.dataset.add)));
+  $("btnEmoji").addEventListener("click", () => $("emojiPicker").classList.toggle("hidden"));
+  $("btnImage").addEventListener("click", () => { replaceTarget = null; $("imgInput").click(); });
+  $("imgInput").addEventListener("change", async (e) => {
+    const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+    if (replaceTarget) { const { src } = await fileToDataURL(f); replaceTarget.src = src; replaceTarget = null; pushHistory(); scheduleRender(); }
+    else addImageFile(f);
   });
-  ["wmm", "hmm"].forEach((id) => $(id).addEventListener("input", () => { $("preset").value = "custom"; }));
-  $("fontSize").addEventListener("input", () => { $("autoFit").checked = false; });
+  $("btnUndo").addEventListener("click", undo);
+  $("btnRedo").addEventListener("click", redo);
 
-  document.querySelectorAll("input,select,textarea").forEach((el) => {
-    if (el.id === "imageFile" || el.id === "showAll") return;
-    el.addEventListener("input", () => { updatePreview(); saveSettings(); });
-    el.addEventListener("change", () => { updatePreview(); saveSettings(); });
+  // paste / drop images
+  document.addEventListener("paste", (e) => {
+    const tag = (e.target.tagName || "").toLowerCase(); if (tag === "textarea" || tag === "input") return;
+    const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith("image/"));
+    if (item) { e.preventDefault(); addImageFile(item.getAsFile()); }
   });
+  const wrap = $("canvasWrap");
+  wrap.addEventListener("dragover", (e) => e.preventDefault());
+  wrap.addEventListener("drop", (e) => { e.preventDefault(); const f = [...e.dataTransfer.files].find((x) => x.type.startsWith("image/")); if (f) addImageFile(f); });
 
-  $("imageFile").addEventListener("change", (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    const url = URL.createObjectURL(f);
-    const img = new Image();
-    img.onload = () => { loadedImage = img; updatePreview(); };
-    img.onerror = () => log("Couldn't read that image", "err");
-    img.src = url;
-  });
-
-  $("tabText").addEventListener("click", () => setMode("text"));
-  $("tabImage").addEventListener("click", () => setMode("image"));
+  // printer
   $("btnConnect").addEventListener("click", connect);
-  $("btnDisconnect").addEventListener("click", disconnect);
-  $("btnPrint").addEventListener("click", print);
+  $("btnDisconnect").addEventListener("click", () => { if (bt.device && bt.device.gatt.connected) bt.device.gatt.disconnect(); });
+  $("btnPrint").addEventListener("click", () => doPrint());
+  $("btnPrint2").addEventListener("click", () => doPrint());
+  $("btnCancel").addEventListener("click", () => { bt.cancel = true; });
 
-  updatePreview();
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(updatePreview);
-  log("Ready. Turn the printer on, then press Connect printer.");
+  // designs
+  $("btnTplLoad").addEventListener("click", loadTemplate);
+  $("btnNew").addEventListener("click", () => { doc.objects = []; selId = null; pushHistory(); buildProps(); scheduleRender(); });
+  $("btnTplSave").addEventListener("click", () => {
+    const cur = $("tplSelect").value.startsWith("t:") ? $("tplSelect").value.slice(2) : "";
+    const name = (prompt("Name this design:", cur) || "").trim(); if (!name) return;
+    templates[name] = JSON.parse(snapshot());
+    if (!store.set("ls.templates", templates)) { delete templates[name]; log("Not enough storage to save. Try smaller images.", "err"); return; }
+    refreshTemplateSelect(); $("tplSelect").value = "t:" + name; log(`Saved design "${name}"`, "ok");
+  });
+  $("btnTplDelete").addEventListener("click", () => {
+    const v = $("tplSelect").value; if (!v.startsWith("t:")) { log("Pick one of your saved designs to delete", "warn"); return; }
+    if (!confirm(`Delete "${v.slice(2)}"?`)) return;
+    delete templates[v.slice(2)]; store.set("ls.templates", templates); refreshTemplateSelect();
+  });
+  $("btnExport").addEventListener("click", () => {
+    const v = $("tplSelect").value; const name = v.startsWith("t:") ? v.slice(2) : "label";
+    download(`${name.replace(/[^\w\- ]+/g, "")}.label.json`, JSON.stringify({ app: "label-studio", version: 1, name, doc: JSON.parse(snapshot()) }, null, 1));
+  });
+  $("btnImport").addEventListener("click", () => $("tplInput").click());
+  $("tplInput").addEventListener("change", async (e) => {
+    const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+    try {
+      const j = JSON.parse(await f.text());
+      const d = j.doc || j;
+      if (!d.label || !Array.isArray(d.objects)) throw new Error("not a label design");
+      doc = d; selId = null; syncLabelInputs(); pushHistory(); buildProps(); scheduleRender();
+      if (j.name && !templates[j.name]) { templates[j.name] = clone(d); store.set("ls.templates", templates); refreshTemplateSelect(); }
+      log(`Imported "${j.name || f.name}"`, "ok");
+    } catch (err) { log(`Import failed: ${err.message}`, "err"); }
+  });
+
+  // batch
+  let bt0 = null;
+  $("batchText").addEventListener("input", () => { clearTimeout(bt0); bt0 = setTimeout(updateBatch, 300); });
+  $("btnBatchFile").addEventListener("click", () => $("csvInput").click());
+  $("csvInput").addEventListener("change", async (e) => { const f = e.target.files[0]; e.target.value = ""; if (!f) return; $("batchText").value = await f.text(); updateBatch(); });
+  $("btnBatchClear").addEventListener("click", () => { $("batchText").value = ""; updateBatch(); });
+
+  window.addEventListener("resize", scheduleRender);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleRender);
+
+  if (!doc.objects.length) doc.objects = STARTERS["Cute sticker"](designDims().dw, designDims().dh);
+  undoStack = [snapshot()]; updateUndoButtons();
+  buildProps(); scheduleRender(); renderPrinterInfo(); updatePrintButtons();
+  if (!window.qrcode || !window.JsBarcode) log("QR/barcode helpers didn't load (offline or blocked). Everything else works.", "warn");
+  log("Ready. Turn the printer on and press Connect printer.");
 }
 init();
 </script>
