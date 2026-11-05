@@ -157,7 +157,17 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
       <h2>Printer &amp; sticker roll</h2>
       <div id="printerInfo" class="kv"><span>Not connected</span></div>
       <div id="rollInfo"></div>
-      <div class="row" style="margin-top:10px;margin-bottom:0">
+      <div class="row" style="margin-top:10px;margin-bottom:6px">
+        <label>Printer model
+          <select id="model">
+            <option value="auto">Auto-detect when connected</option>
+            <option value="b21">B21 (203 dpi)</option>
+            <option value="b21s">B21S (203 dpi)</option>
+            <option value="b21pro">B21 Pro (300 dpi)</option>
+          </select>
+        </label>
+      </div>
+      <div class="row" style="margin-bottom:0">
         <label class="inline"><input type="checkbox" id="autoDetect"> Auto-detect sticker rolls</label>
         <label class="inline"><input type="checkbox" id="showAll"> Show all Bluetooth devices</label>
       </div>
@@ -170,24 +180,15 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 
     <section>
       <h2>Label</h2>
+      <div class="hint" style="margin-bottom:4px">★ Favorites</div>
+      <div id="favRow" class="chips" style="margin-top:0"></div>
       <div class="row">
-        <label>Size preset
-          <select id="preset">
-            <option value="">Custom</option>
-            <option value="50x30">50 × 30 mm</option>
-            <option value="50x20">50 × 20 mm</option>
-            <option value="50x40">50 × 40 mm</option>
-            <option value="50x50">50 × 50 mm</option>
-            <option value="50x70">50 × 70 mm</option>
-            <option value="50x80">50 × 80 mm</option>
-            <option value="40x30">40 × 30 mm</option>
-            <option value="40x40">40 × 40 mm</option>
-            <option value="40x60">40 × 60 mm</option>
-            <option value="30x20">30 × 20 mm</option>
-            <option value="30x30">30 × 30 mm</option>
-            <option value="25x25">25 × 25 mm</option>
-          </select>
+        <label>Size
+          <select id="preset"></select>
         </label>
+        <button id="btnFav" class="small" type="button">☆ Add to favorites</button>
+      </div>
+      <div class="row">
         <label>Width (mm)<input type="number" id="lblW" min="5" max="60" step="1"></label>
         <label>Height (mm)<input type="number" id="lblH" min="5" max="200" step="1"></label>
       </div>
@@ -207,6 +208,10 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
             <option value="270">Rotated 270°</option>
           </select>
         </label>
+      </div>
+      <div class="actions" style="margin-top:10px;align-items:center">
+        <button id="btnSizeTest" class="small" disabled>Print size test</button>
+        <span class="hint">Prints a border + mm ruler to check the size fits your stickers.</span>
       </div>
     </section>
 
@@ -250,8 +255,11 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
         <div class="row">
           <label>Protocol
             <select id="proto">
-              <option value="v1">V1 (older firmware)</option>
-              <option value="v2">V2 (newer firmware)</option>
+              <option value="auto">Automatic (matches printer model)</option>
+              <option value="v1">B21 style</option>
+              <option value="d110">B21S style</option>
+              <option value="pro">B21 Pro style</option>
+              <option value="v2">B1 style</option>
             </select>
           </label>
           <label>Row delay (ms)<input type="number" id="rowDelay" min="0" max="100" value="10"></label>
@@ -316,8 +324,15 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 /* =====================================================================
    Basics
    ===================================================================== */
-const DPMM = 8;          // 203 dpi ≈ 8 dots/mm
-const HEAD_PX = 384;     // B21 printhead = 48 mm
+// Printer models (from the open-source niimbluelib project). Set at startup from settings/detection.
+const MODELS = {
+  b21:    { name: "B21", dpi: 203, head: 384, task: "v1" },
+  b21s:   { name: "B21S", dpi: 203, head: 384, task: "d110" },
+  b21pro: { name: "B21 Pro", dpi: 300, head: 576, task: "pro" },
+};
+const MODEL_IDS = { 768: "b21", 769: "b21", 771: "b21", 775: "b21", 776: "b21s", 777: "b21s", 785: "b21pro" };
+let DPMM = 8;            // dots per mm (203 dpi ≈ 8, 300 dpi ≈ 11.8)
+let HEAD_PX = 384;       // printhead width in dots
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const hex = (a) => Array.from(a, (b) => b.toString(16).padStart(2, "0")).join(" ");
@@ -353,8 +368,16 @@ const S = Object.assign({
   copies: 1, density: 3, labelType: 1, counterStart: 1, dateFormat: "locale",
   proto: "v1", rowDelay: 10, autoDetect: true, showAll: false,
   fields: {}, continueCount: false,
+  model: "auto", lastDetected: null, favs: ["50x30", "40x30", "50x20"], ver: 0,
 }, store.get("ls.settings", {}));
 if (!S.fields || typeof S.fields !== "object") S.fields = {};
+if (!Array.isArray(S.favs)) S.favs = [];
+if ((S.ver || 0) < 2) { S.proto = "auto"; S.ver = 2; }   // protocol now picked per printer model
+let detectedModel = null;
+const modelKey = () => (S.model !== "auto" ? S.model : detectedModel || S.lastDetected) || "b21";
+const activeTask = () => (S.proto === "auto" ? MODELS[modelKey()].task : S.proto);
+DPMM = MODELS[modelKey()].dpi / 25.4;
+HEAD_PX = MODELS[modelKey()].head;
 const saveSettings = () => store.set("ls.settings", S);
 
 let rolls = store.get("ls.rolls", {});          // barcode -> {name,w,h,shape,type}
@@ -396,7 +419,25 @@ const DEFAULTS = {
 };
 const TYPE_NAMES = { text: "Text", qr: "QR code", barcode: "Barcode", image: "Image", rect: "Box", ellipse: "Circle", line: "Line" };
 
-let doc = store.get("ls.doc", null) || { label: { w: 50, h: 30, shape: "rect", rotate: 0 }, objects: [] };
+let doc = store.get("ls.doc", null) || { label: { w: 50, h: 30, shape: "rect", rotate: 0 }, objects: [], dpmm: DPMM };
+
+// Designs are stored in printer dots; convert when the printer resolution differs.
+function scaleObjs(objs, f) {
+  for (const o of objs) {
+    o.x = Math.round(o.x * f); o.y = Math.round(o.y * f);
+    o.w = Math.max(4, Math.round(o.w * f)); o.h = Math.max(4, Math.round(o.h * f));
+    if (o.size) o.size = Math.max(4, Math.round(o.size * f));
+    if (o.stroke) o.stroke = Math.max(1, Math.round(o.stroke * f));
+    if (o.radius) o.radius = Math.round(o.radius * f);
+  }
+}
+function normalizeDoc(d) {
+  const from = d.dpmm || 8;
+  if (Math.abs(from - DPMM) > 1e-6) scaleObjs(d.objects || [], DPMM / from);
+  d.dpmm = DPMM;
+  return d;
+}
+normalizeDoc(doc);
 let selId = null;
 let batch = null;      // {headers, rows}
 let previewIdx = 0;
@@ -429,6 +470,19 @@ function setLabel(patch) {
   pushHistory();
   buildProps();
   scheduleRender();
+}
+
+// Switch printer resolution/printhead (e.g. B21 -> B21 Pro) and convert the design
+function applyModel() {
+  const m = MODELS[modelKey()];
+  const nd = m.dpi / 25.4;
+  if (Math.abs(nd - DPMM) < 1e-6 && m.head === HEAD_PX) return;
+  const f = nd / DPMM;
+  DPMM = nd; HEAD_PX = m.head;
+  scaleObjs(doc.objects, f);
+  doc.dpmm = DPMM;
+  log(`Using ${m.name} settings (${m.dpi} dpi)`, "ok");
+  pushHistory(); buildProps(); scheduleRender();
 }
 
 /* =====================================================================
@@ -685,6 +739,7 @@ function drawObject(ctx, o, vars) {
       case "qr": drawQR(ctx, o, w, hh, vars); break;
       case "barcode": drawBarcode(ctx, o, w, hh, vars); break;
       case "image": drawImageObj(ctx, o, w, hh); break;
+      case "ruler": drawRuler(ctx, w, hh); break;
       default: drawShape(ctx, o, w, hh);
     }
   } catch (e) { console.error(e); }
@@ -692,12 +747,12 @@ function drawObject(ctx, o, vars) {
 }
 
 const designCanvas = document.createElement("canvas");
-function renderDesignBits(vars) {
+function renderDesignBits(vars, objects = doc.objects) {
   const { dw, dh } = designDims();
   designCanvas.width = dw; designCanvas.height = dh;
   const ctx = designCanvas.getContext("2d", { willReadFrequently: true });
   ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, dw, dh);
-  for (const o of doc.objects) drawObject(ctx, o, vars);
+  for (const o of objects) drawObject(ctx, o, vars);
   const px = ctx.getImageData(0, 0, dw, dh).data;
   const bits = new Uint8Array(dw * dh);
   for (let i = 0; i < bits.length; i++) bits[i] = (0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2]) < 128 ? 1 : 0;
@@ -719,8 +774,8 @@ function toPrintOrientation(bits, dw, dh, rot) {
   return { bits: out, W, H };
 }
 
-function printBitmap(vars) {
-  const { bits, dw, dh } = renderDesignBits(vars);
+function printBitmap(vars, objects) {
+  const { bits, dw, dh } = renderDesignBits(vars, objects);
   const p = toPrintOrientation(bits, dw, dh, +doc.label.rotate || 0);
   const bpr = Math.ceil(p.W / 8), rows = [];
   for (let y = 0; y < p.H; y++) {
@@ -795,8 +850,8 @@ function render() {
   }
 
   const pd = printDims();
-  let meta = `${doc.label.w} × ${doc.label.h} mm · ${pd.W} × ${pd.H} dots`;
-  if (pd.capped) meta += " · print width limited to 48 mm by the printhead";
+  let meta = `${doc.label.w} × ${doc.label.h} mm · ${pd.W} × ${pd.H} dots · ${MODELS[modelKey()].name} ${MODELS[modelKey()].dpi} dpi`;
+  if (pd.capped) meta += ` · print width limited to ${(HEAD_PX / DPMM).toFixed(0)} mm by the printhead`;
   $("meta").textContent = meta;
 
   const L = jobLabels();
@@ -1013,7 +1068,7 @@ let keyTimer = null;
    History & persistence
    ===================================================================== */
 let undoStack = [], redoStack = [];
-const snapshot = () => JSON.stringify(doc, (k, v) => (k.startsWith("_") ? undefined : v));
+const snapshot = () => { doc.dpmm = DPMM; return JSON.stringify(doc, (k, v) => (k.startsWith("_") ? undefined : v)); };
 function pushHistory() {
   const s = snapshot();
   if (undoStack[undoStack.length - 1] === s) return;
@@ -1023,7 +1078,7 @@ function pushHistory() {
   updateUndoButtons();
 }
 function restore(s) {
-  doc = JSON.parse(s);
+  doc = normalizeDoc(JSON.parse(s));
   if (!doc.objects.some((o) => o.id === selId)) selId = null;
   store.set("ls.doc", doc);
   syncLabelInputs(); buildProps(); scheduleRender(); updateUndoButtons();
@@ -1047,6 +1102,8 @@ function addObject(type, props = {}) {
     if (type === "ellipse") { w = hh = Math.round(Math.min(dw, dh) * 0.6); }
     base.w = base.w ?? w; base.h = base.h ?? hh;
   }
+  if (base.stroke && props.stroke == null) base.stroke = Math.max(1, Math.round(base.stroke * DPMM / 8));
+  if (base.size && props.size == null) base.size = Math.round(base.size * DPMM / 8);
   base.x = base.x ?? Math.round((dw - base.w) / 2);
   base.y = base.y ?? Math.round((dh - base.h) / 2);
   doc.objects.push(base);
@@ -1247,6 +1304,13 @@ const STARTERS = {
     T("barcode", W * 0.1, H * 0.52, W * 0.8, H * 0.42, { value: "{n:6}" })],
 };
 
+// Starters are laid out at 8 dots/mm, then scaled to the current printer
+function starterObjects(name) {
+  const { dw, dh } = designDims(), k = DPMM / 8;
+  const objs = STARTERS[name](dw / k, dh / k);
+  scaleObjs(objs, k);
+  return objs;
+}
 function refreshTemplateSelect() {
   const s = $("tplSelect"); s.innerHTML = "";
   const g1 = h("optgroup", { label: "Starter designs" });
@@ -1262,11 +1326,10 @@ function refreshTemplateSelect() {
 function loadTemplate() {
   const v = $("tplSelect").value; if (!v) return;
   if (v.startsWith("s:")) {
-    const { dw, dh } = designDims();
-    doc.objects = STARTERS[v.slice(2)](dw, dh);
+    doc.objects = starterObjects(v.slice(2));
   } else {
     const t = templates[v.slice(2)]; if (!t) return;
-    doc = clone(t);
+    doc = normalizeDoc(clone(t));
   }
   S.copies = 1; previewIdx = 0; saveSettings(); syncSettingInputs();
   selId = null; syncLabelInputs(); pushHistory(); buildProps(); scheduleRender();
@@ -1420,8 +1483,14 @@ async function connect() {
     await exclusive(async () => {
       await req(0xc1, [1], 0xc2, 1500, true);
       const fw = await getInfo(9); if (fw) bt.info.firmware = (beInt(fw) / 100).toFixed(2);
+      const id = await getInfo(8);
+      if (id) { bt.info.modelId = beInt(id); detectedModel = MODEL_IDS[bt.info.modelId] || null; }
       await refreshBattery();
     });
+    if (!detectedModel && /pro/i.test(device.name || "")) detectedModel = "b21pro";
+    if (detectedModel) { S.lastDetected = detectedModel; saveSettings(); log(`Printer model: ${MODELS[detectedModel].name}`, "ok"); }
+    else if (bt.info.modelId) log(`Unknown printer model id ${bt.info.modelId}; using ${MODELS[modelKey()].name} settings`, "warn");
+    applyModel();
     renderPrinterInfo();
     await detectRoll(true);
   } catch (e) {
@@ -1451,7 +1520,7 @@ function setConn(state, text) {
 }
 function updatePrintButtons() {
   const can = !!bt.char && !bt.printing;
-  $("btnPrint").disabled = $("btnPrint2").disabled = $("btnPrintOne").disabled = !can;
+  $("btnPrint").disabled = $("btnPrint2").disabled = $("btnPrintOne").disabled = $("btnSizeTest").disabled = !can;
   $("btnCancel").classList.toggle("hidden", !bt.printing);
   if (!bt.printing) $("mbStatus").textContent = bt.char ? rollSummary() || "Connected" : "Not connected";
 }
@@ -1459,6 +1528,8 @@ function renderPrinterInfo() {
   const el = $("printerInfo"); el.innerHTML = "";
   if (!bt.char) { el.append(h("span", {}, "Not connected")); return; }
   el.append(h("span", {}, "Printer ", h("b", {}, bt.info.name)));
+  const m = MODELS[modelKey()];
+  el.append(h("span", {}, "Model ", h("b", {}, `${m.name} · ${m.dpi} dpi`)));
   if (bt.info.battery) el.append(h("span", {}, "Battery ", h("b", {}, bt.info.battery)));
   if (bt.info.firmware) el.append(h("span", {}, "Firmware ", h("b", {}, bt.info.firmware)));
 }
@@ -1538,6 +1609,7 @@ function renderRoll() {
       lib ? h("button", { class: "small", onclick: () => { delete el.dataset.editing; renderRoll(); } }, "Cancel") : null));
 }
 function renderRollList() {
+  buildSizeSelect(); syncLabelInputs();
   const el = $("rollList"); el.innerHTML = "";
   const keys = Object.keys(rolls);
   if (!keys.length) { el.append(h("span", { class: "hint" }, "No rolls saved yet.")); return; }
@@ -1554,26 +1626,35 @@ setInterval(() => { if (S.autoDetect && bt.char && !bt.printing && !document.hid
 
 /* ----- printing ----- */
 const popcount = (b) => { let c = 0; while (b) { c += b & 1; b >>= 1; } return c; };
-function rowCounts(r) { const chunk = HEAD_PX / 24, c = [0, 0, 0]; r.forEach((b, i) => { c[Math.min(2, Math.floor(i / chunk))] += popcount(b); }); return c; }
+// Black-dot counts in the row header: per third of the printhead ("split") or one total [0, lo, hi]
+function rowCounts(r, mode) {
+  const chunk = Math.floor(HEAD_PX / 8 / 3);
+  let total = 0; const parts = [0, 0, 0];
+  r.forEach((b, i) => { const c = popcount(b); total += c; const k = Math.floor(i / chunk); if (k < 3) parts[k] += c; });
+  const split = mode !== "total" && r.length <= chunk * 3;
+  return split ? parts.map((v) => Math.min(255, v)) : [0, total & 0xff, (total >> 8) & 0xff];
+}
 const isEmpty = (r) => r.every((b) => b === 0);
 const sameRow = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
 function checkCancel() { if (bt.cancel) throw new Error("Cancelled"); }
 
-async function sendRows(bmp, onProgress) {
+async function sendRows(bmp, onProgress, { countsMode = "auto", checkLines = false } = {}) {
   const delay = Math.max(0, +S.rowDelay || 0);
   let y = 0;
   while (y < bmp.H) {
     checkCancel();
     const r = bmp.rows[y]; let n = 1;
+    const maxRun = Math.min(255, bmp.H - y, checkLines ? 200 - (y % 200) : 255);
     if (isEmpty(r)) {
-      while (y + n < bmp.H && n < 255 && isEmpty(bmp.rows[y + n])) n++;
+      while (n < maxRun && isEmpty(bmp.rows[y + n])) n++;
       await write(packet(0x84, [...u16(y), n]));
     } else {
-      while (y + n < bmp.H && n < 255 && sameRow(r, bmp.rows[y + n])) n++;
-      const c = rowCounts(r);
+      while (n < maxRun && sameRow(r, bmp.rows[y + n])) n++;
+      const c = rowCounts(r, countsMode);
       await write(packet(0x85, [...u16(y), c[0], c[1], c[2], n, ...r]));
     }
     y += n;
+    if (checkLines && (y - 1) % 200 === 199) await req(0x86, [...u16(y - 1), 1], 0xd3, 1000, true);
     onProgress(y / bmp.H);
     if (delay) await sleep(delay);
   }
@@ -1606,9 +1687,53 @@ function setProgress(f, text) {
   if (text) { $("printStatus").textContent = text; $("mbStatus").textContent = text; }
 }
 async function runPrint(pages, total) {
+  const task = activeTask();
+  if (task === "pro") {
+    // B21 Pro (niimbluelib "D110M_V4" task)
+    await req(0x23, [S.labelType], 0x33);
+    await req(0x21, [S.density], 0x31);
+    await req(0x01, [...u16(total), 0, 0, 0, 0, 0, 0, 0], 0x02);   // 9-byte print start
+    let sent = 0;
+    for (const p of pages) {
+      checkCancel();
+      if (sent > 0) await waitPrinted(sent);
+      setProgress(sent / total, `Printing ${Math.min(total, sent + 1)} of ${total}…`);
+      await write(packet(0xa3, [1]));   // printer drops the first packet after start; this one is expendable
+      await sleep(60);
+      await req(0x13, [...u16(p.bmp.H), ...u16(p.bmp.W), ...u16(p.qty), 0, 0, 0, 0, 0, 0, 0], 0x14); // 13-byte page size
+      await sendRows(p.bmp, (f) => setProgress((sent + f * p.qty) / total));
+      await req(0xe3, [1], 0xe4);
+      sent += p.qty;
+    }
+    await waitPrinted(total);
+    await endPrint();
+    try { await write(packet(0xdc, [1])); } catch (_) {}
+    return;
+  }
+  if (task === "d110") {
+    // B21S (niimbluelib "D110" task)
+    await req(0x21, [S.density], 0x31);
+    await req(0x23, [S.labelType], 0x33);
+    await req(0x01, [1], 0x02);
+    let printed = 0;
+    for (const p of pages) {
+      checkCancel();
+      setProgress(printed / total, `Printing ${Math.min(total, printed + 1)} of ${total}…`);
+      await req(0x20, [1], 0x30, 500, true);  // clear
+      await req(0x03, [1], 0x04);
+      await req(0x13, [...u16(p.bmp.H), ...u16(p.bmp.W)], 0x14);
+      await req(0x15, [...u16(p.qty)], 0x16);
+      await sendRows(p.bmp, (f) => setProgress((printed + f * p.qty) / total));
+      await req(0xe3, [1], 0xe4);
+      printed += p.qty;
+      await waitPrinted(printed);
+    }
+    await endPrint();
+    return;
+  }
   await req(0x21, [S.density], 0x31);
   await req(0x23, [S.labelType], 0x33);
-  if (S.proto === "v2") {
+  if (task === "v2") {
     await req(0x01, [...u16(total), 0, 0, 0, 0, 0], 0x02);
     let sent = 0;
     for (const p of pages) {
@@ -1631,7 +1756,7 @@ async function runPrint(pages, total) {
       await req(0x01, [1], 0x02);
       await req(0x03, [1], 0x04);
       await req(0x13, [...u16(p.bmp.H), ...u16(p.bmp.W)], 0x14);
-      await sendRows(p.bmp, (f) => setProgress((done + f) / total));
+      await sendRows(p.bmp, (f) => setProgress((done + f) / total), { countsMode: "total", checkLines: true });
       await req(0xe3, [1], 0xe4);
       await waitPrinted(1);
       await endPrint();
@@ -1639,24 +1764,26 @@ async function runPrint(pages, total) {
     }
   }
 }
-async function doPrint(only) {
+async function doPrint(only, testObjects) {
   if (!bt.char) { log("Connect the printer first", "warn"); return; }
   if (bt.printing) return;
-  if (!doc.objects.length) { log("The label is empty. Add some text or an image first.", "warn"); return; }
-  const empty = customVars().filter((k) => { const f = fieldOf(k); return !f.value && !listOf(f).length; });
-  if (empty.length && !confirm(`These blanks are empty: ${empty.map((k) => `{${k}}`).join(", ")}.\nPrint anyway?`)) return;
+  if (!testObjects) {
+    if (!doc.objects.length) { log("The label is empty. Add some text or an image first.", "warn"); return; }
+    const empty = customVars().filter((k) => { const f = fieldOf(k); return !f.value && !listOf(f).length; });
+    if (empty.length && !confirm(`These blanks are empty: ${empty.map((k) => `{${k}}`).join(", ")}.\nPrint anyway?`)) return;
+  }
   bt.printing = true; bt.cancel = false; updatePrintButtons();
   $("progress").classList.remove("hidden");
   try {
     await imagesReady();
-    const pages = buildPages(only);
+    const pages = testObjects ? [{ bmp: printBitmap({ n: 1, row: {} }, testObjects), qty: 1 }] : buildPages(only);
     const total = pages.reduce((a, p) => a + p.qty, 0);
     if (total > 50 && !confirm(`Print ${total} labels?`)) return;
-    log(`Printing ${total} label${total > 1 ? "s" : ""} (${pages[0].bmp.W}×${pages[0].bmp.H} dots, darkness ${S.density}, ${S.proto.toUpperCase()})`);
+    log(`Printing ${total} label${total > 1 ? "s" : ""} (${pages[0].bmp.W}×${pages[0].bmp.H} dots, ${MODELS[modelKey()].name}, darkness ${S.density}, protocol ${activeTask()})`);
     await exclusive(() => runPrint(pages, total));
     setProgress(1, "Done");
     log("Done", "ok");
-    if (only == null && S.continueCount && usesCounter()) { S.counterStart = (+S.counterStart || 0) + total; saveSettings(); $("fillIn").dataset.sig = ""; scheduleRender(); }
+    if (only == null && !testObjects && S.continueCount && usesCounter()) { S.counterStart = (+S.counterStart || 0) + total; saveSettings(); $("fillIn").dataset.sig = ""; scheduleRender(); }
   } catch (e) {
     log(`Print stopped: ${e.message}`, e.message === "Cancelled" ? "warn" : "err");
     setProgress(0, e.message === "Cancelled" ? "Cancelled" : "Failed");
@@ -1671,11 +1798,97 @@ async function doPrint(only) {
 /* =====================================================================
    UI wiring
    ===================================================================== */
+/* ----- label size catalog & favorites ----- */
+// Common NIIMBOT B21-family roll sizes (width across the roll × length of one label)
+const SIZE_CATALOG = [
+  ...[15, 20, 25, 30, 40, 50, 60, 70, 80, 100].map((h) => ({ w: 50, h })),
+  { w: 45, h: 20 }, { w: 45, h: 30 },
+  ...[15, 20, 25, 30, 40, 50, 60, 70].map((h) => ({ w: 40, h })),
+  ...[15, 20, 30, 40, 50].map((h) => ({ w: 30, h })),
+  { w: 25, h: 15 }, { w: 25, h: 25 }, { w: 20, h: 10 }, { w: 20, h: 20 },
+  ...[20, 25, 30, 40, 45, 50].map((d) => ({ w: d, h: d, shape: "circle" })),
+];
+const sizeKey = (s) => `${s.w}x${s.h}${s.shape === "circle" ? "r" : ""}`;
+const sizeName = (s) => (s.shape === "circle" ? `${s.w} mm round` : `${s.w} × ${s.h} mm`);
+function parseSizeKey(k) {
+  const m = /^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)(r?)$/.exec(k || "");
+  return m ? { w: +m[1], h: +m[2], shape: m[3] ? "circle" : null } : null;
+}
+const currentSizeKey = () => sizeKey({ w: doc.label.w, h: doc.label.h, shape: doc.label.shape === "circle" ? "circle" : null });
+function applySizeKey(k) {
+  if (k.startsWith("roll:")) { const r = rolls[k.slice(5)]; if (r) applyRoll(r); return; }
+  const s = parseSizeKey(k); if (!s) return;
+  setLabel({ w: s.w, h: s.h, shape: s.shape || (doc.label.shape === "circle" ? "rect" : doc.label.shape || "rect") });
+}
+function buildSizeSelect() {
+  const sel = $("preset"); sel.innerHTML = "";
+  sel.append(h("option", { value: "" }, "Custom size"));
+  const rk = Object.keys(rolls);
+  if (rk.length) {
+    const g = h("optgroup", { label: "My sticker rolls" });
+    rk.forEach((k) => g.append(h("option", { value: "roll:" + k }, `${rolls[k].name} (${rolls[k].w}×${rolls[k].h})`)));
+    sel.append(g);
+  }
+  const groups = {};
+  for (const s of SIZE_CATALOG) { const g = s.shape === "circle" ? "Round stickers" : `${s.w} mm wide`; (groups[g] = groups[g] || []).push(s); }
+  for (const [g, list] of Object.entries(groups)) {
+    const og = h("optgroup", { label: g });
+    list.forEach((s) => og.append(h("option", { value: sizeKey(s) }, (S.favs.includes(sizeKey(s)) ? "★ " : "") + sizeName(s))));
+    sel.append(og);
+  }
+}
+function renderFavs() {
+  const row = $("favRow"); row.innerHTML = "";
+  const cur = currentSizeKey();
+  if (!S.favs.length) row.append(h("span", { class: "hint" }, "Tap ☆ to save sizes you use often."));
+  for (const k of S.favs) {
+    const s = parseSizeKey(k); if (!s) continue;
+    row.append(h("button", { class: "chip", type: "button", style: k === cur ? "background:var(--accent);color:var(--accent-fg)" : "",
+      onclick: () => applySizeKey(k) }, sizeName(s)));
+  }
+  const fav = S.favs.includes(cur);
+  $("btnFav").textContent = fav ? "★ Favorite (remove)" : "☆ Add to favorites";
+}
+function toggleFav() {
+  const k = currentSizeKey();
+  S.favs = S.favs.includes(k) ? S.favs.filter((x) => x !== k) : S.favs.concat(k);
+  saveSettings(); buildSizeSelect(); syncLabelInputs();
+}
 function syncLabelInputs() {
   $("lblW").value = doc.label.w; $("lblH").value = doc.label.h;
   $("lblShape").value = doc.label.shape || "rect"; $("lblRot").value = String(doc.label.rotate || 0);
-  const key = `${doc.label.w}x${doc.label.h}`;
+  const key = currentSizeKey();
   $("preset").value = [...$("preset").options].some((o) => o.value === key) ? key : "";
+  renderFavs();
+}
+
+/* ----- size test print ----- */
+function sizeTestObjects() {
+  const { dw, dh } = designDims();
+  const m = MODELS[modelKey()];
+  const base = { rot: 0 };
+  return [
+    Object.assign({ id: "t1", type: "rect", x: 0, y: 0, w: dw, h: dh, stroke: 2, fill: false, radius: 0, style: "solid" }, base),
+    Object.assign({ id: "t2", type: "ruler", x: 0, y: 0, w: dw, h: dh }, base),
+    Object.assign({ id: "t3", type: "text" }, clone(DEFAULTS.text), base,
+      { x: Math.round(dw * 0.22), y: Math.round(dh * 0.3), w: Math.round(dw * 0.6), h: Math.round(dh * 0.42), text: `${doc.label.w} × ${doc.label.h} mm\n${m.name}` }),
+  ];
+}
+function drawRuler(ctx, w, hh) {
+  ctx.fillStyle = "#000";
+  const fs = Math.max(8, Math.round(DPMM * 1.6));
+  ctx.font = `600 ${fs}px sans-serif`; ctx.textBaseline = "top"; ctx.textAlign = "left";
+  for (let mm = 1; mm * DPMM < w; mm++) {
+    const x = Math.round(mm * DPMM), len = mm % 10 === 0 ? 4 * DPMM : mm % 5 === 0 ? 2.5 * DPMM : 1.2 * DPMM;
+    ctx.fillRect(x, 0, mm % 5 === 0 ? 2 : 1, len);
+    if (mm % 10 === 0) ctx.fillText(String(mm), x + 3, 2.6 * DPMM);
+  }
+  ctx.textBaseline = "middle";
+  for (let mm = 1; mm * DPMM < hh; mm++) {
+    const y = Math.round(mm * DPMM), len = mm % 10 === 0 ? 4 * DPMM : mm % 5 === 0 ? 2.5 * DPMM : 1.2 * DPMM;
+    ctx.fillRect(0, y, len, mm % 5 === 0 ? 2 : 1);
+    if (mm % 10 === 0) ctx.fillText(String(mm), 4.4 * DPMM, y);
+  }
 }
 const SETTING_INPUTS = { copies: "num", density: "num", labelType: "num", dateFormat: "str", proto: "str", rowDelay: "num", autoDetect: "bool", showAll: "bool" };
 function syncSettingInputs() {
@@ -1691,8 +1904,12 @@ function init() {
   if (!navigator.bluetooth) { $("noBt").classList.remove("hidden"); $("btnConnect").disabled = true; }
   else if (!window.isSecureContext) $("noSecure").classList.remove("hidden");
 
-  syncLabelInputs(); syncSettingInputs();
+  buildSizeSelect(); syncLabelInputs(); syncSettingInputs();
   buildEmojiPicker(); refreshTemplateSelect(); renderRollList();
+  $("model").value = S.model || "auto";
+  $("model").addEventListener("change", () => { S.model = $("model").value; saveSettings(); applyModel(); renderPrinterInfo(); scheduleRender(); });
+  $("btnFav").addEventListener("click", toggleFav);
+  $("btnSizeTest").addEventListener("click", () => doPrint(null, sizeTestObjects()));
 
   // settings
   for (const [k, t] of Object.entries(SETTING_INPUTS)) {
@@ -1714,7 +1931,7 @@ function init() {
   $("previewPrint").addEventListener("click", () => { $("previewDlg").close(); doPrint(); });
 
   // label
-  $("preset").addEventListener("change", () => { const v = $("preset").value; if (v) { const [w, hh] = v.split("x").map(Number); setLabel({ w, h: hh }); } });
+  $("preset").addEventListener("change", () => { const v = $("preset").value; if (v) applySizeKey(v); });
   $("lblW").addEventListener("change", () => { const v = Math.max(5, Math.min(60, +$("lblW").value || 50)); setLabel({ w: v }); });
   $("lblH").addEventListener("change", () => { const v = Math.max(5, Math.min(200, +$("lblH").value || 30)); setLabel({ h: v }); });
   $("lblShape").addEventListener("change", () => setLabel({ shape: $("lblShape").value }));
@@ -1775,7 +1992,7 @@ function init() {
       const j = JSON.parse(await f.text());
       const d = j.doc || j;
       if (!d.label || !Array.isArray(d.objects)) throw new Error("not a label design");
-      doc = d; selId = null; syncLabelInputs(); pushHistory(); buildProps(); scheduleRender();
+      doc = normalizeDoc(d); selId = null; syncLabelInputs(); pushHistory(); buildProps(); scheduleRender();
       if (j.name && !templates[j.name]) { templates[j.name] = clone(d); store.set("ls.templates", templates); refreshTemplateSelect(); }
       log(`Imported "${j.name || f.name}"`, "ok");
     } catch (err) { log(`Import failed: ${err.message}`, "err"); }
@@ -1791,7 +2008,7 @@ function init() {
   window.addEventListener("resize", scheduleRender);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleRender);
 
-  if (!doc.objects.length) doc.objects = STARTERS["Cute sticker"](designDims().dw, designDims().dh);
+  if (!doc.objects.length) doc.objects = starterObjects("Gift tag: To {name}, from Logan");
   undoStack = [snapshot()]; updateUndoButtons();
   buildProps(); scheduleRender(); renderPrinterInfo(); updatePrintButtons();
   if (!window.qrcode || !window.JsBarcode) log("QR/barcode helpers didn't load (offline or blocked). Everything else works.", "warn");
