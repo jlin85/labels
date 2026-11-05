@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Label Printer</title>
+<style>
+:root{
+  --bg:#f5f6f8; --card:#ffffff; --fg:#1b1f24; --muted:#5f6b7a; --line:#dde2e8;
+  --accent:#2563eb; --accent-fg:#ffffff; --ok:#15803d; --warn:#b45309; --err:#b91c1c;
+  --paper:#ffffff; --ink:#111111; --field:#ffffff;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f1216; --card:#171b21; --fg:#e6e9ee; --muted:#97a3b1; --line:#2a313a;
+    --accent:#3b82f6; --ok:#4ade80; --warn:#fbbf24; --err:#f87171; --field:#0f1216;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:16px;border-bottom:1px solid var(--line);background:var(--card)}
+header h1{margin:0;font-size:18px}
+header p{margin:2px 0 0;color:var(--muted);font-size:13px}
+main{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media (max-width:800px){main{grid-template-columns:minmax(0,1fr)}}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+section h2{margin:0 0 10px;font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:10px}
+.row > label{flex:1 1 120px}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+label.inline{flex-direction:row;align-items:center;gap:6px;flex:0 0 auto;color:var(--fg)}
+input,select,textarea,button{font:inherit;color:var(--fg)}
+input[type=number],input[type=text],select,textarea{background:var(--field);border:1px solid var(--line);border-radius:6px;padding:7px 8px;width:100%}
+textarea{min-height:90px;resize:vertical}
+input[type=range]{width:100%}
+button{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:9px 14px;cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:600}
+button:disabled{opacity:.5;cursor:not-allowed}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button[aria-selected=true]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.status{display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:10px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--muted)}
+.dot.on{background:var(--ok)}
+.banner{border:1px solid var(--warn);color:var(--warn);border-radius:8px;padding:10px;margin-bottom:10px;font-size:13px;display:none}
+.preview-wrap{background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/16px 16px;border-radius:8px;padding:16px;display:flex;justify-content:center;align-items:center;min-height:220px;overflow:auto}
+#preview{background:var(--paper);image-rendering:pixelated;box-shadow:0 1px 4px rgba(0,0,0,.25);border-radius:3px;max-width:100%}
+.meta{color:var(--muted);font-size:12px;margin-top:6px;text-align:center}
+progress{width:100%;height:10px}
+#log{background:var(--field);border:1px solid var(--line);border-radius:6px;font:12px/1.4 ui-monospace,Consolas,monospace;height:140px;overflow:auto;padding:6px;white-space:pre-wrap;margin:0}
+#log .warn{color:var(--warn)} #log .err{color:var(--err)} #log .ok{color:var(--ok)}
+.hidden{display:none!important}
+details summary{cursor:pointer;color:var(--muted);font-size:13px}
+.full{grid-column:1/-1}
+</style>
+</head>
+<body>
+<header>
+  <h1>Label Printer</h1>
+  <p>Prints to a NIIMBOT B21 (and similar) directly over Bluetooth. No app, no account, no cloud, no VPN.</p>
+</header>
+
+<main>
+  <!-- LEFT: printer + label + content -->
+  <div style="display:grid;gap:16px;align-content:start">
+    <section>
+      <h2>Printer</h2>
+      <div id="noBt" class="banner">This browser can't use Bluetooth. Open this page in <b>Chrome</b> or <b>Edge</b> (Windows / Android / Mac). On iPhone, use the free <b>Bluefy</b> browser.</div>
+      <div id="noSecure" class="banner">Bluetooth needs a secure page. Open this file from <b>https://</b> (e.g. GitHub Pages) instead.</div>
+      <div class="status"><span id="dot" class="dot"></span><span id="statusText">Not connected</span></div>
+      <div class="row">
+        <button id="btnConnect" class="primary">Connect printer</button>
+        <button id="btnDisconnect" disabled>Disconnect</button>
+        <label class="inline"><input type="checkbox" id="showAll"> Show all Bluetooth devices</label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Label</h2>
+      <div class="row">
+        <label>Size preset
+          <select id="preset">
+            <option value="50x30">50 × 30 mm</option>
+            <option value="50x20">50 × 20 mm</option>
+            <option value="40x30">40 × 30 mm</option>
+            <option value="40x20">40 × 20 mm</option>
+            <option value="30x20">30 × 20 mm</option>
+            <option value="50x50">50 × 50 mm</option>
+            <option value="50x80">50 × 80 mm</option>
+            <option value="custom">Custom</option>
+          </select>
+        </label>
+        <label>Width (mm)<input type="number" id="wmm" min="5" max="60" step="1" value="50"></label>
+        <label>Height (mm)<input type="number" id="hmm" min="5" max="200" step="1" value="30"></label>
+      </div>
+      <div class="row">
+        <label>Rotate design
+          <select id="rotate">
+            <option value="0">0°</option>
+            <option value="90">90°</option>
+            <option value="180">180°</option>
+            <option value="270">270°</option>
+          </select>
+        </label>
+        <label>Margin (mm)<input type="number" id="margin" min="0" max="10" step="0.5" value="2"></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Content</h2>
+      <div class="tabs" role="tablist">
+        <button id="tabText" role="tab" aria-selected="true">Text</button>
+        <button id="tabImage" role="tab" aria-selected="false">Image</button>
+      </div>
+
+      <div id="paneText">
+        <label>Text (one line per row)<textarea id="text">Hello from
+the B21!</textarea></label>
+        <div class="row" style="margin-top:10px">
+          <label>Font
+            <select id="font">
+              <option value="system-ui, 'Segoe UI', Roboto, Arial, sans-serif">Sans</option>
+              <option value="Georgia, 'Times New Roman', serif">Serif</option>
+              <option value="Consolas, 'Courier New', monospace">Mono</option>
+              <option value="Impact, 'Arial Black', sans-serif">Heavy</option>
+            </select>
+          </label>
+          <label>Align
+            <select id="align">
+              <option value="center">Center</option>
+              <option value="left">Left</option>
+              <option value="right">Right</option>
+            </select>
+          </label>
+          <label>Font size (px)<input type="number" id="fontSize" min="6" max="400" value="40"></label>
+        </div>
+        <div class="row">
+          <label class="inline"><input type="checkbox" id="autoFit" checked> Auto-fit text</label>
+          <label class="inline"><input type="checkbox" id="bold" checked> Bold</label>
+          <label class="inline"><input type="checkbox" id="border"> Border</label>
+        </div>
+      </div>
+
+      <div id="paneImage" class="hidden">
+        <label>Image file (PNG, JPG, SVG…)<input type="file" id="imageFile" accept="image/*"></label>
+        <div class="row" style="margin-top:10px">
+          <label>Fit
+            <select id="fit">
+              <option value="contain">Fit inside</option>
+              <option value="cover">Fill (crop)</option>
+              <option value="stretch">Stretch</option>
+            </select>
+          </label>
+          <label class="inline"><input type="checkbox" id="dither"> Dither (for photos)</label>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:6px">
+        <label>Darkness threshold <input type="range" id="threshold" min="1" max="254" value="128"></label>
+        <label class="inline"><input type="checkbox" id="invert"> Invert</label>
+      </div>
+    </section>
+  </div>
+
+  <!-- RIGHT: preview + print -->
+  <div style="display:grid;gap:16px;align-content:start">
+    <section>
+      <h2>Preview (exact printed pixels)</h2>
+      <div class="preview-wrap"><canvas id="preview" width="384" height="240"></canvas></div>
+      <div id="meta" class="meta"></div>
+    </section>
+
+    <section>
+      <h2>Print</h2>
+      <div class="row">
+        <label>Copies<input type="number" id="copies" min="1" max="99" value="1"></label>
+        <label>Density
+          <select id="density">
+            <option value="1">1 (lightest)</option>
+            <option value="2">2</option>
+            <option value="3" selected>3 (default)</option>
+            <option value="4">4</option>
+            <option value="5">5 (darkest)</option>
+          </select>
+        </label>
+        <label>Paper type
+          <select id="labelType">
+            <option value="1">Labels with gaps</option>
+            <option value="2">Black mark</option>
+            <option value="3">Continuous</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <button id="btnPrint" class="primary" disabled>Print</button>
+      </div>
+      <progress id="progress" value="0" max="1" class="hidden"></progress>
+      <details style="margin-top:10px">
+        <summary>Advanced / troubleshooting</summary>
+        <div class="row" style="margin-top:10px">
+          <label>Protocol
+            <select id="proto">
+              <option value="v1">V1 (older B21 firmware)</option>
+              <option value="v2">V2 (newer B21 / B1 firmware)</option>
+            </select>
+          </label>
+          <label>Row delay (ms)<input type="number" id="rowDelay" min="0" max="100" value="10"></label>
+        </div>
+        <p class="meta" style="text-align:left">If the printer feeds but prints nothing, or does nothing at all, switch Protocol and try again. If prints come out garbled or partial, raise the row delay.</p>
+      </details>
+    </section>
+
+    <section>
+      <h2>Log</h2>
+      <pre id="log"></pre>
+    </section>
+  </div>
+</main>
+
+<script>
+"use strict";
+/* ============================================================
+   Constants
+   ============================================================ */
+const DPMM = 8;          // 203 dpi ≈ 8 dots per mm
+const HEAD_PX = 384;     // B21 printhead width in dots (48 mm)
+// Known NIIMBOT BLE services; the "e781…" one is used by the B21/B1/D11/D110.
+const SERVICES = [
+  "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
+  "0000ffe0-0000-1000-8000-00805f9b34fb",
+  "0000ff00-0000-1000-8000-00805f9b34fb",
+  "49535343-fe7d-4ae5-8fa9-9fafd205e455",
+];
+const NAME_PREFIXES = ["B21", "B1", "B3", "B18", "B203", "D11", "D110", "D101", "H1"];
+
+// Printer error codes (best-effort mapping)
+const ERRORS = {
+  1: "Cover open", 2: "Out of labels", 3: "Low battery", 4: "Battery problem",
+  5: "Cancelled on printer", 6: "Data error", 7: "Printer overheated",
+  8: "Paper output problem", 9: "Printer busy", 10: "No printhead",
+  11: "Temperature too low", 12: "Printhead loose", 16: "Unsupported labels",
+};
+
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const hex = (arr) => Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join(" ");
+const u16 = (n) => [(n >> 8) & 0xff, n & 0xff];
+
+const bt = { device: null, char: null, rx: [], waiters: [], printing: false };
+
+/* ============================================================
+   Logging / status
+   ============================================================ */
+function log(msg, cls) {
+  const el = $("log");
+  const line = document.createElement("div");
+  if (cls) line.className = cls;
+  line.textContent = `${new Date().toLocaleTimeString()}  ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+function setStatus(connected, text) {
+  $("dot").classList.toggle("on", connected);
+  $("statusText").textContent = text;
+  $("btnConnect").disabled = connected;
+  $("btnDisconnect").disabled = !connected;
+  $("btnPrint").disabled = !connected || bt.printing;
+}
+
+/* ============================================================
+   NIIMBOT packet protocol
+   Frame: 55 55 | cmd | len | data… | xor(cmd,len,data) | AA AA
+   ============================================================ */
+function packet(cmd, data = []) {
+  let cs = cmd ^ data.length;
+  for (const b of data) cs ^= b;
+  return new Uint8Array([0x55, 0x55, cmd, data.length, ...data, cs, 0xaa, 0xaa]);
+}
+
+function onNotify(ev) {
+  const dv = ev.target.value;
+  for (let i = 0; i < dv.byteLength; i++) bt.rx.push(dv.getUint8(i));
+  parseRx();
+}
+
+function parseRx() {
+  for (;;) {
+    let start = -1;
+    for (let i = 0; i < bt.rx.length - 1; i++) {
+      if (bt.rx[i] === 0x55 && bt.rx[i + 1] === 0x55) { start = i; break; }
+    }
+    if (start < 0) { bt.rx = bt.rx.length && bt.rx[bt.rx.length - 1] === 0x55 ? [0x55] : []; return; }
+    if (start > 0) bt.rx = bt.rx.slice(start);
+    if (bt.rx.length < 4) return;
+    const cmd = bt.rx[2], len = bt.rx[3], total = len + 7;
+    if (bt.rx.length < total) return;
+    const data = bt.rx.slice(4, 4 + len);
+    let cs = cmd ^ len;
+    for (const b of data) cs ^= b;
+    const valid = cs === bt.rx[4 + len] && bt.rx[5 + len] === 0xaa && bt.rx[6 + len] === 0xaa;
+    if (!valid) { bt.rx = bt.rx.slice(2); continue; }
+    bt.rx = bt.rx.slice(total);
+    dispatch({ cmd, data });
+  }
+}
+
+function dispatch(p) {
+  if (p.cmd === 0xdb) { // printer error
+    const code = p.data[0];
+    const msg = ERRORS[code] ? `${ERRORS[code]} (code ${code})` : `Printer error code ${code}`;
+    log(msg, "err");
+    const w = bt.waiters.shift();
+    if (w) { clearTimeout(w.timer); w.reject(new Error(msg)); }
+    return;
+  }
+  if (p.cmd === 0x00) { // "not supported"
+    const w = bt.waiters.shift();
+    if (w) { clearTimeout(w.timer); w.resolve(null); }
+    return;
+  }
+  const i = bt.waiters.findIndex((w) => w.codes.includes(p.cmd));
+  if (i >= 0) {
+    const [w] = bt.waiters.splice(i, 1);
+    clearTimeout(w.timer);
+    w.resolve(p);
+  }
+}
+
+function waitFor(codes, timeout) {
+  return new Promise((resolve, reject) => {
+    const w = { codes, resolve, reject };
+    w.timer = setTimeout(() => {
+      const i = bt.waiters.indexOf(w);
+      if (i >= 0) bt.waiters.splice(i, 1);
+      resolve(null);
+    }, timeout);
+    bt.waiters.push(w);
+  });
+}
+
+async function write(bytes) {
+  const c = bt.char;
+  if (!c) throw new Error("Printer not connected");
+  if (c.properties.writeWithoutResponse) await c.writeValueWithoutResponse(bytes);
+  else await c.writeValueWithResponse(bytes);
+}
+
+// Send a command and wait for its reply (reply code is usually cmd+1 or cmd+0x10).
+async function req(cmd, data, replyCode, timeout = 2000, quiet = false) {
+  const p = waitFor([replyCode], timeout);
+  await write(packet(cmd, data));
+  const r = await p;
+  if (!r && !quiet) log(`No reply to 0x${cmd.toString(16)}, continuing`, "warn");
+  return r;
+}
+
+/* ============================================================
+   Bluetooth connect / disconnect
+   ============================================================ */
+async function connect() {
+  try {
+    const opts = $("showAll").checked
+      ? { acceptAllDevices: true, optionalServices: SERVICES }
+      : { filters: NAME_PREFIXES.map((p) => ({ namePrefix: p })), optionalServices: SERVICES };
+    const device = await navigator.bluetooth.requestDevice(opts);
+    setStatus(false, `Connecting to ${device.name || "printer"}…`);
+    device.addEventListener("gattserverdisconnected", onDisconnected);
+    const server = await device.gatt.connect();
+
+    let ch = null;
+    for (const svc of await server.getPrimaryServices()) {
+      for (const c of await svc.getCharacteristics()) {
+        if (c.properties.notify && (c.properties.writeWithoutResponse || c.properties.write)) { ch = c; break; }
+      }
+      if (ch) break;
+    }
+    if (!ch) throw new Error("This device doesn't look like a NIIMBOT printer (no compatible Bluetooth channel).");
+
+    await ch.startNotifications();
+    ch.addEventListener("characteristicvaluechanged", onNotify);
+    bt.device = device; bt.char = ch; bt.rx = [];
+
+    await req(0xc1, [1], 0xc2, 1500, true); // "connect" handshake
+    setStatus(true, `Connected: ${device.name || "printer"}`);
+    log(`Connected to ${device.name || "printer"}`, "ok");
+  } catch (e) {
+    if (e.name === "NotFoundError") { log("No printer selected. Is it switched on? Try 'Show all Bluetooth devices'.", "warn"); }
+    else log(`Connect failed: ${e.message}`, "err");
+    setStatus(false, "Not connected");
+  }
+}
+
+function onDisconnected() {
+  bt.char = null;
+  bt.waiters.splice(0).forEach((w) => { clearTimeout(w.timer); w.reject(new Error("Printer disconnected")); });
+  setStatus(false, "Not connected");
+  log("Printer disconnected", "warn");
+}
+
+function disconnect() {
+  if (bt.device && bt.device.gatt.connected) bt.device.gatt.disconnect();
+}
+
+/* ============================================================
+   Rendering: design canvas -> 1-bit bitmap
+   ============================================================ */
+let loadedImage = null;
+let mode = "text";
+
+function dims() {
+  const wmm = Math.max(5, +$("wmm").value || 50);
+  const hmm = Math.max(5, +$("hmm").value || 30);
+  const W = Math.min(Math.round(wmm * DPMM), HEAD_PX);
+  const H = Math.round(hmm * DPMM);
+  return { W, H, clipped: Math.round(wmm * DPMM) > HEAD_PX };
+}
+
+function drawDesign(dw, dh) {
+  const c = document.createElement("canvas");
+  c.width = dw; c.height = dh;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, dw, dh);
+  ctx.fillStyle = "#000"; ctx.strokeStyle = "#000";
+  const m = Math.round((+$("margin").value || 0) * DPMM);
+  const bx = m, by = m, bw = Math.max(1, dw - 2 * m), bh = Math.max(1, dh - 2 * m);
+
+  if (mode === "text") {
+    const lines = $("text").value.split("\n");
+    const family = $("font").value;
+    const weight = $("bold").checked ? "700" : "400";
+    const lh = 1.15;
+    const border = $("border").checked;
+    const pad = border ? 6 : 0;
+    const maxW = bw - 2 * pad, maxH = bh - 2 * pad;
+    const fits = (sz) => {
+      ctx.font = `${weight} ${sz}px ${family}`;
+      const widest = Math.max(...lines.map((l) => ctx.measureText(l).width));
+      return widest <= maxW && lines.length * sz * lh <= maxH;
+    };
+    let size = +$("fontSize").value || 40;
+    if ($("autoFit").checked) {
+      let lo = 6, hi = 400;
+      while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (fits(mid)) lo = mid; else hi = mid - 1; }
+      size = lo;
+      $("fontSize").value = size;
+    }
+    ctx.font = `${weight} ${size}px ${family}`;
+    ctx.textBaseline = "middle";
+    const align = $("align").value;
+    ctx.textAlign = align;
+    const x = align === "left" ? bx + pad : align === "right" ? bx + bw - pad : bx + bw / 2;
+    const blockH = lines.length * size * lh;
+    let y = by + (bh - blockH) / 2 + (size * lh) / 2;
+    for (const l of lines) { ctx.fillText(l, x, y); y += size * lh; }
+    if (border) { ctx.lineWidth = 3; ctx.strokeRect(bx + 1.5, by + 1.5, bw - 3, bh - 3); }
+  } else if (loadedImage) {
+    const iw = loadedImage.naturalWidth || loadedImage.width;
+    const ih = loadedImage.naturalHeight || loadedImage.height;
+    const fit = $("fit").value;
+    let w = bw, h = bh, x = bx, y = by;
+    if (fit !== "stretch") {
+      const s = fit === "contain" ? Math.min(bw / iw, bh / ih) : Math.max(bw / iw, bh / ih);
+      w = iw * s; h = ih * s; x = bx + (bw - w) / 2; y = by + (bh - h) / 2;
+    }
+    ctx.save();
+    ctx.beginPath(); ctx.rect(bx, by, bw, bh); ctx.clip();
+    ctx.drawImage(loadedImage, x, y, w, h);
+    ctx.restore();
+  }
+  return c;
+}
+
+function renderBitmap() {
+  const { W, H } = dims();
+  const rot = +$("rotate").value;
+  const swap = rot === 90 || rot === 270;
+  const design = drawDesign(swap ? H : W, swap ? W : H);
+
+  const pc = document.createElement("canvas");
+  pc.width = W; pc.height = H;
+  const ctx = pc.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+  if (rot === 90) { ctx.translate(W, 0); ctx.rotate(Math.PI / 2); }
+  else if (rot === 180) { ctx.translate(W, H); ctx.rotate(Math.PI); }
+  else if (rot === 270) { ctx.translate(0, H); ctx.rotate(-Math.PI / 2); }
+  ctx.drawImage(design, 0, 0);
+
+  const px = ctx.getImageData(0, 0, W, H).data;
+  const gray = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) gray[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
+
+  const thr = +$("threshold").value;
+  const bits = new Uint8Array(W * H); // 1 = black dot
+  if ($("dither").checked && mode === "image") {
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x, old = gray[i], nw = old < thr ? 0 : 255, err = old - nw;
+      bits[i] = nw === 0 ? 1 : 0;
+      if (x + 1 < W) gray[i + 1] += err * 7 / 16;
+      if (y + 1 < H) {
+        if (x > 0) gray[i + W - 1] += err * 3 / 16;
+        gray[i + W] += err * 5 / 16;
+        if (x + 1 < W) gray[i + W + 1] += err / 16;
+      }
+    }
+  } else {
+    for (let i = 0; i < W * H; i++) bits[i] = gray[i] < thr ? 1 : 0;
+  }
+  if ($("invert").checked) for (let i = 0; i < bits.length; i++) bits[i] ^= 1;
+
+  // Pack rows: MSB = leftmost dot, 1 = black
+  const bpr = Math.ceil(W / 8);
+  const rows = [];
+  for (let y = 0; y < H; y++) {
+    const r = new Uint8Array(bpr);
+    for (let x = 0; x < W; x++) if (bits[y * W + x]) r[x >> 3] |= 0x80 >> (x & 7);
+    rows.push(r);
+  }
+  return { W, H, bits, rows };
+}
+
+function updatePreview() {
+  const { W, H, bits } = renderBitmap();
+  const cv = $("preview");
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext("2d");
+  const img = ctx.createImageData(W, H);
+  for (let i = 0; i < bits.length; i++) {
+    const v = bits[i] ? 17 : 255;
+    img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = v;
+    img.data[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  cv.style.width = Math.min(W * 1.5, 576) + "px";
+  const d = dims();
+  $("meta").textContent = `${W} × ${H} dots (${(W / DPMM).toFixed(0)} × ${(H / DPMM).toFixed(0)} mm)` +
+    (d.clipped ? " · width capped at 48 mm (printhead limit)" : "");
+}
+
+/* ============================================================
+   Printing
+   ============================================================ */
+const popcount = (b) => { let c = 0; while (b) { c += b & 1; b >>= 1; } return c; };
+function rowCounts(row) {
+  const chunk = HEAD_PX / 8 / 3; // 16 bytes per third of the printhead
+  const c = [0, 0, 0];
+  row.forEach((b, i) => { c[Math.min(2, Math.floor(i / chunk))] += popcount(b); });
+  return c;
+}
+const isEmpty = (r) => r.every((b) => b === 0);
+const sameRow = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+
+async function sendRows(bmp, onProgress) {
+  const delay = Math.max(0, +$("rowDelay").value || 0);
+  let y = 0;
+  while (y < bmp.H) {
+    const row = bmp.rows[y];
+    let n = 1;
+    if (isEmpty(row)) {
+      while (y + n < bmp.H && n < 255 && isEmpty(bmp.rows[y + n])) n++;
+      await write(packet(0x84, [...u16(y), n]));                   // blank rows
+    } else {
+      while (y + n < bmp.H && n < 255 && sameRow(row, bmp.rows[y + n])) n++;
+      const c = rowCounts(row);
+      await write(packet(0x85, [...u16(y), c[0], c[1], c[2], n, ...row])); // bitmap row
+    }
+    y += n;
+    onProgress(y / bmp.H);
+    if (delay) await sleep(delay);
+  }
+}
+
+async function waitPrinted(pages) {
+  const t0 = Date.now();
+  let misses = 0;
+  while (Date.now() - t0 < 30000) {
+    const r = await req(0xa3, [1], 0xb3, 1000, true);
+    if (r && r.data.length >= 2) {
+      misses = 0;
+      if (((r.data[0] << 8) | r.data[1]) >= pages) return;
+    } else if (++misses >= 3) { await sleep(1500); return; } // printer doesn't report status
+    await sleep(300);
+  }
+}
+
+async function endPrint() {
+  let misses = 0;
+  for (let i = 0; i < 30; i++) {
+    const r = await req(0xf3, [1], 0xf4, 1000, true);
+    if (r && r.data[0] === 1) return;
+    if (!r && ++misses >= 3) return;
+    await sleep(250);
+  }
+}
+
+async function print() {
+  if (bt.printing) return;
+  bt.printing = true; setStatus(true, $("statusText").textContent);
+  const prog = $("progress");
+  prog.classList.remove("hidden"); prog.value = 0;
+  try {
+    const bmp = renderBitmap();
+    const density = +$("density").value, type = +$("labelType").value;
+    const copies = Math.max(1, Math.min(99, +$("copies").value || 1));
+    const proto = $("proto").value;
+    log(`Printing ${bmp.W}×${bmp.H}, ${copies} cop${copies > 1 ? "ies" : "y"}, density ${density}, protocol ${proto.toUpperCase()}`);
+
+    await req(0x21, [density], 0x31);   // density
+    await req(0x23, [type], 0x33);      // paper type
+
+    if (proto === "v2") {
+      await req(0x01, [...u16(copies), 0, 0, 0, 0, 0], 0x02);         // print start
+      await req(0x03, [1], 0x04);                                       // page start
+      await req(0x13, [...u16(bmp.H), ...u16(bmp.W), ...u16(copies)], 0x14); // page size + copies
+      await sendRows(bmp, (f) => (prog.value = f));
+      await req(0xe3, [1], 0xe4);                                       // page end
+      await waitPrinted(copies);
+      await endPrint();
+    } else {
+      for (let k = 0; k < copies; k++) {
+        await req(0x01, [1], 0x02);
+        await req(0x03, [1], 0x04);
+        await req(0x13, [...u16(bmp.H), ...u16(bmp.W)], 0x14);
+        await sendRows(bmp, (f) => (prog.value = (k + f) / copies));
+        await req(0xe3, [1], 0xe4);
+        await waitPrinted(1);
+        await endPrint();
+      }
+    }
+    prog.value = 1;
+    log("Done", "ok");
+  } catch (e) {
+    log(`Print failed: ${e.message}`, "err");
+    try { await write(packet(0xf3, [1])); } catch (_) {}
+  } finally {
+    bt.printing = false;
+    setStatus(!!bt.char, bt.char ? $("statusText").textContent : "Not connected");
+    setTimeout(() => prog.classList.add("hidden"), 1500);
+  }
+}
+
+/* ============================================================
+   UI wiring + remembered settings
+   ============================================================ */
+const SAVE_IDS = ["preset", "wmm", "hmm", "rotate", "margin", "text", "font", "align", "fontSize", "autoFit",
+  "bold", "border", "fit", "dither", "threshold", "invert", "copies", "density", "labelType", "proto", "rowDelay"];
+const STORE_KEY = "labelPrinterSettings.v1";
+
+function saveSettings() {
+  const s = {};
+  for (const id of SAVE_IDS) { const el = $(id); s[id] = el.type === "checkbox" ? el.checked : el.value; }
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (_) {}
+}
+function loadSettings() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); } catch (_) {}
+  if (!s) return;
+  for (const id of SAVE_IDS) {
+    if (!(id in s)) continue;
+    const el = $(id);
+    if (el.type === "checkbox") el.checked = !!s[id]; else el.value = s[id];
+  }
+}
+
+function setMode(m) {
+  mode = m;
+  $("tabText").setAttribute("aria-selected", m === "text");
+  $("tabImage").setAttribute("aria-selected", m === "image");
+  $("paneText").classList.toggle("hidden", m !== "text");
+  $("paneImage").classList.toggle("hidden", m !== "image");
+  updatePreview();
+}
+
+function init() {
+  loadSettings();
+
+  if (!navigator.bluetooth) { $("noBt").style.display = "block"; $("btnConnect").disabled = true; }
+  else if (!window.isSecureContext) { $("noSecure").style.display = "block"; }
+
+  $("preset").addEventListener("change", () => {
+    const v = $("preset").value;
+    if (v !== "custom") { const [w, h] = v.split("x"); $("wmm").value = w; $("hmm").value = h; }
+  });
+  ["wmm", "hmm"].forEach((id) => $(id).addEventListener("input", () => { $("preset").value = "custom"; }));
+  $("fontSize").addEventListener("input", () => { $("autoFit").checked = false; });
+
+  document.querySelectorAll("input,select,textarea").forEach((el) => {
+    if (el.id === "imageFile" || el.id === "showAll") return;
+    el.addEventListener("input", () => { updatePreview(); saveSettings(); });
+    el.addEventListener("change", () => { updatePreview(); saveSettings(); });
+  });
+
+  $("imageFile").addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = () => { loadedImage = img; updatePreview(); };
+    img.onerror = () => log("Couldn't read that image", "err");
+    img.src = url;
+  });
+
+  $("tabText").addEventListener("click", () => setMode("text"));
+  $("tabImage").addEventListener("click", () => setMode("image"));
+  $("btnConnect").addEventListener("click", connect);
+  $("btnDisconnect").addEventListener("click", disconnect);
+  $("btnPrint").addEventListener("click", print);
+
+  updatePreview();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(updatePreview);
+  log("Ready. Turn the printer on, then press Connect printer.");
+}
+init();
+</script>
+</body>
+</html>
